@@ -1,7 +1,8 @@
 from moviepy import *
 
-def crop_video(clip: VideoClip):
+def crop_video(video_width, video_height, clip: VideoClip):
     clip_aspect = clip.w / clip.h
+    aspect_ratio = video_width / video_height
 
     if clip_aspect < aspect_ratio:
         scaled_clip: VideoClip = clip.resized(width=video_width)
@@ -16,8 +17,9 @@ def crop_video(clip: VideoClip):
     )
     
     
-def set_clip_position(clip: VideoClip, position: tuple[int,int], max_position: tuple[int,int]) -> VideoClip:
+def set_clip_position(video_width, video_height, clip: VideoClip, position: tuple[int,int], max_position: tuple[int,int]) -> VideoClip:
     clip_aspect = clip.w / clip.h
+    aspect_ratio = video_width / video_height
     
     rows, cols = max_position
     
@@ -41,7 +43,8 @@ def set_clip_position(clip: VideoClip, position: tuple[int,int], max_position: t
     
     return cropped_clip.with_position((clip_x, clip_y))
 
-def split_screen_clips(clips: list[VideoClip], max_position: tuple[int,int], manual_positions: list[tuple[int,int]] | None = None):
+
+def split_screen_clips(video_width, video_height, clips: list[VideoClip], max_position: tuple[int,int], manual_positions: list[tuple[int,int]] | None = None):
     rows, cols = max_position
     
     positions = []

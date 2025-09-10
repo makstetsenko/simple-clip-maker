@@ -8,6 +8,8 @@ import uuid
 import os
 import math
 import datetime
+from enum import Enum
+import src.video_clip_transform as video_clip_transform
 
 
 class VideoClipEnriched:
@@ -69,21 +71,84 @@ class VideoClipEnriched:
         self.clip.write_videofile(video_path, audio=audio_path, audio_codec="aac", fps=self.fps)
         
 
+class VideoPosition(Enum):
+    CROP = 1
+    SPLIT_SCREEN = 2
+    
+
+class VideoTimelinePart:
+    def __init__(self):
+        self.clips: list[VideoClipEnriched] = []
+        self.time_stops = []
+        self.video_position = VideoPosition.CROP
+        
+        
+    def append_video(self, clip: VideoClipEnriched):
+        self.clips.append(clip)
+
+
+    def append_videos_list(self, clips: list[VideoClipEnriched]):
+        for c in clips:
+            self.clips.append(c)
+
+
+    def with_time_stop_points(self, time_stops: list[int]):
+        self.time_stops = time_stops
+        return self
+    
+    
+    def with_video_position(self, video_position: VideoPosition):
+        self.video_position = video_position
+    
+    
+    def find_clip_with_min_duration(self, min_duration: float,  clips: list[VideoClipEnriched]):
+        filtered = [c for c in clips if c.duration > min_duration]
+        
+        if len(filter) == 0:
+            return None
+        
+        return random.choice(filtered)
+        
+    
+    def build_clip_bewteen_time_stops(self, start_time: float, end_time: float, clips: list[VideoClipEnriched]):
+        duration = end_time - start_time
+            
+        selected_clips: list[VideoClipEnriched] = []
+        selected_clips_duration = 0
+        
+        while selected_clips_duration <= duration:
+            clip = self.find_clip_with_min_duration(duration, clips)
+            
+            if clip == None:
+                clip = random.choice(clips)
+            
+            selected_clips.append(clip)
+            selected_clips_duration += clip.duration
+            
+        return selected_clips
+            
+
+    def build_from_clips(self, clips: list[VideoClipEnriched]):
+        if len(self.time_stops) == 0:
+            raise Exception("time_stops is empty. Cannot select clips for empty time stops")        
+        
+        for i in range(1, len(self.time_stops) - 1):            
+            clip = self.build_clip_bewteen_time_stops(
+                start_time=self.time_stops[i-1],
+                end_time=self.time_stops[i],
+                clisp=clips
+            )
+            self.clips.append(clip)
+        
+        return self
 
 
 class VideoTimeline:
     
     def __init__(self):
-        self.clips: list[VideoClipEnriched] = []
+        self.parts: list[VideoTimelinePart] = []
         
-        
-    def append(self, clip: VideoClipEnriched):
-        self.clips.append(clip)
-
-
-    def append_list(self, clips: list[VideoClipEnriched]):
-        for c in clips:
-            self.clips.append(c)
+    
     
 
 
@@ -129,6 +194,7 @@ class VideoProject:
     
     
     
+
     
 def make_clip(video_files_path_template: str, audio_file_path_template: str, store_sub_clips: bool):
     
