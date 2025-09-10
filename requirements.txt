@@ -1,0 +1,7 @@
+numpy
+moviepy
+scipy
+librosa
+matplotlib
+argparse
+scikit-image
