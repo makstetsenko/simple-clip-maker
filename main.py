@@ -24,7 +24,11 @@ def main():
         plot_builder.build_plot(music_file_path)
         return
 
-    clip_builder.build_music_clip(args)
+    clip_builder.build(
+        audio_file_path_template=args.music_file,
+        store_timeline_clips=args.store_sub_clips,
+        video_files_path_template=args.video_files_path_template
+    )
 
 
 try:
