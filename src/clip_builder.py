@@ -15,46 +15,34 @@ import src.video_clip_transform as video_clip_transform
 class VideoPosition(Enum):
     CROP = 1
     SPLIT_SCREEN = 2
-    
 
-class VideoTimelinePart:
-    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool):
-        self.timeline_clips: list[VideoClip] = []
-        self.timeline_clips_to_write_to_file: list[VideoClip] = []
-        self.full_length_concataneted_clips: list[VideoClip] = []
-        self.time_stops = time_stops
-        self.video_position = VideoPosition.CROP
-        self.video_resolution = video_resolution
-        self.concataneted_clip_start_time = 0
-        self.repeat_clips = repeat_clips
-        self.clip_to_save_extend_time = 0.009 # when saving as separate clip add some extra time to avoid cutting vide earlier than expected, Idk why this value, it just works
+class ClipBuildResult:
+    def __init__(self, timeline_clips: list[VideoClip], timeline_clips_to_write_to_file: list[VideoClip]):
+        self.timeline_clips: list[VideoClip] = timeline_clips
+        self.timeline_clips_to_write_to_file: list[VideoClip] = timeline_clips_to_write_to_file
+
+class ClipBuilder:
+    CLIP_TO_SAVE_EXTEND_TIME = 0.009 # when saving as separate clip add some extra time to avoid cutting vide earlier than expected, Idk why this value, it just works
         
-
-    def with_video_position(self, video_position: VideoPosition):
-        self.video_position = video_position
-    
-    
-    def find_clip_with_min_duration(self, min_duration: float,  clips: list[VideoClip]):
+    @staticmethod
+    def find_clip_with_min_duration(min_duration: float,  clips: list[VideoClip]) -> VideoClip:
         filtered = [c for c in clips if c.duration > min_duration]
         
         if len(filtered) == 0:
             return None
         
         return random.choice(filtered)
-        
-    
-    def build_clip_bewteen_time_stops(self, start_time: float, end_time: float, clips: list[VideoClip]):
-        duration = end_time - start_time
-            
+
+
+    @staticmethod
+    def compose_clip_with_min_duration(duration: float, clips: list[VideoClip], previosely_composed_clips: list[VideoClip], repeat_clips) -> VideoClip:
         selected_clips: list[VideoClip] = []
         selected_clips_duration = 0
-        
-        can_repeat_clips = self.repeat_clips and len(self.full_length_concataneted_clips) > 0
-        
+                
         while selected_clips_duration <= duration:
-            clip = self.full_length_concataneted_clips[-1] \
-                if can_repeat_clips \
-                else self.find_clip_with_min_duration(duration, clips)
+            clip = previosely_composed_clips[-1] \
+                if ClipBuilder.can_repeat_clip(previosely_composed_clips, repeat_clips) \
+                else ClipBuilder.find_clip_with_min_duration(duration, clips)
                 
             if clip == None:
                 clip = random.choice(clips)
@@ -62,9 +50,37 @@ class VideoTimelinePart:
             selected_clips.append(clip)
             selected_clips_duration += clip.duration
 
-        self.concataneted_clip_start_time = self.concataneted_clip_start_time if can_repeat_clips else random.randint(0, math.floor((selected_clips_duration - duration) * 100)) / 100.0
+        return concatenate_videoclips(clips=selected_clips)
+    
+    
+    @staticmethod
+    def can_repeat_clip(previosely_composed_clips: list[VideoClip], repeat_clips) -> bool:
+        return repeat_clips and len(previosely_composed_clips) > 0
 
-        concatenated_clip: VideoClip = concatenate_videoclips(clips=selected_clips)
+
+    
+class CropClipBuilder(ClipBuilder):
+
+    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool):
+        self.timeline_clips: list[VideoClip] = []
+        self.timeline_clips_to_write_to_file: list[VideoClip] = []
+        self.time_stops = time_stops
+        self.video_resolution = video_resolution
+        self.full_length_concataneted_clips: list[VideoClip] = []
+        self.concataneted_clip_start_time = 0
+        self.repeat_clips = repeat_clips
+
+    def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, clips: list[VideoClip]):
+        duration = end_time - start_time
+            
+        concatenated_clip: VideoClip = ClipBuilder.compose_clip_with_min_duration(
+            clips=clips,
+            duration=duration,
+            previosely_composed_clips=self.full_length_concataneted_clips,
+            repeat_clips=self.repeat_clips
+        )
+        
+        self.concataneted_clip_start_time = self.concataneted_clip_start_time if ClipBuilder.can_repeat_clip(self.full_length_concataneted_clips, self.repeat_clips) else random.randint(0, math.floor((concatenated_clip.duration - duration) * 100)) / 100.0
         self.full_length_concataneted_clips.append(concatenated_clip)
 
         
@@ -78,29 +94,58 @@ class VideoTimelinePart:
         
         subclipped_to_store = concatenated_clip.subclipped(
             start_time=self.concataneted_clip_start_time,
-            end_time=self.concataneted_clip_start_time + duration + self.clip_to_save_extend_time
+            end_time=self.concataneted_clip_start_time + duration + ClipBuilder.CLIP_TO_SAVE_EXTEND_TIME
         )
         timeline_clip_to_store = video_clip_transform.crop_video(self.video_resolution[0], self.video_resolution[1], subclipped_to_store)
         self.timeline_clips_to_write_to_file.append(timeline_clip_to_store)
-        
 
 
-
-    def build_timeline_clips(self, clips: list[VideoClip]):
+    def build(self, clips: list[VideoClip]) -> ClipBuildResult:
         if len(self.time_stops) == 0:
             raise Exception("time_stops is empty. Cannot select clips for empty time stops")        
         
+        
         for i in range(1, len(self.time_stops)):
-            self.build_clip_bewteen_time_stops(
+            self.build__clip_bewteen_time_stops(
                 start_time=self.time_stops[i-1],
                 end_time=self.time_stops[i],
                 clips=clips
             )
-        
+            
+        return ClipBuildResult(
+            timeline_clips=self.timeline_clips,
+            timeline_clips_to_write_to_file=self.timeline_clips_to_write_to_file
+        )
+            
     
     def close(self):
         for c in self.timeline_clips + self.full_length_concataneted_clips + self.timeline_clips_to_write_to_file:
             c.close()
+        
+
+class VideoTimelinePart:
+    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool):
+        self.timeline_clips: list[VideoClip] = []
+        self.timeline_clips_to_write_to_file: list[VideoClip] = []
+        
+        self.crop_clip_builder = CropClipBuilder(
+            video_resolution=video_resolution,
+            repeat_clips=repeat_clips,
+            time_stops=time_stops,
+        )
+        
+    def build_timeline_clips(self, clips: list[VideoClip]):
+        build_result = self.crop_clip_builder.build(clips=clips)
+        
+        for c in build_result.timeline_clips:
+            self.timeline_clips.append(c)
+        
+        for c in build_result.timeline_clips_to_write_to_file:
+            self.timeline_clips_to_write_to_file.append(c)
+        
+    
+    def close(self):
+        self.crop_clip_builder.close()
 
 
 class VideoTimeline:
@@ -126,7 +171,7 @@ class VideoTimeline:
                     VideoTimelinePart(
                         video_resolution=self.video_resolution,
                         time_stops=[x for x in part_time_stops],
-                        repeat_clips=True if random.random() < 0.3 else False))
+                        repeat_clips=True if random.random() < 0.3 and part_time_stops_count <= 3 else False))
                 
                 part_time_stops = [time_stop]
                 part_time_stops_count = random.choice(part_time_stops_total_counts)        
