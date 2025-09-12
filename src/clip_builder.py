@@ -17,13 +17,11 @@ class VideoPosition(Enum):
     SPLIT_SCREEN = 2
 
 class ClipBuildResult:
-    def __init__(self, timeline_clips: list[VideoClip], timeline_clips_to_write_to_file: list[VideoClip]):
+    def __init__(self, timeline_clips: list[VideoClip]):
         self.timeline_clips: list[VideoClip] = timeline_clips
-        self.timeline_clips_to_write_to_file: list[VideoClip] = timeline_clips_to_write_to_file
 
-class ClipBuilder:
-    CLIP_TO_SAVE_EXTEND_TIME = 0.009 # when saving as separate clip add some extra time to avoid cutting vide earlier than expected, Idk why this value, it just works
-        
+
+class ClipBuilderHelper:
     @staticmethod
     def find_clip_with_min_duration(min_duration: float,  clips: list[VideoClip]) -> VideoClip:
         filtered = [c for c in clips if c.duration > min_duration]
@@ -35,14 +33,14 @@ class ClipBuilder:
 
 
     @staticmethod
-    def compose_clip_with_min_duration(duration: float, clips: list[VideoClip], previosely_composed_clips: list[VideoClip], repeat_clips) -> VideoClip:
+    def compose_clip_with_min_duration(duration: float, clips: list[VideoClip], used_video_clips: list[VideoClip], repeat_clips) -> VideoClip:
         selected_clips: list[VideoClip] = []
         selected_clips_duration = 0
                 
         while selected_clips_duration <= duration:
-            clip = previosely_composed_clips[-1] \
-                if ClipBuilder.can_repeat_clip(previosely_composed_clips, repeat_clips) \
-                else ClipBuilder.find_clip_with_min_duration(duration, clips)
+            clip = used_video_clips[-1] \
+                if ClipBuilderHelper.can_repeat_clip(used_video_clips, repeat_clips) \
+                else ClipBuilderHelper.find_clip_with_min_duration(duration, clips)
                 
             if clip == None:
                 clip = random.choice(clips)
@@ -54,50 +52,55 @@ class ClipBuilder:
     
     
     @staticmethod
-    def can_repeat_clip(previosely_composed_clips: list[VideoClip], repeat_clips) -> bool:
-        return repeat_clips and len(previosely_composed_clips) > 0
-
-
+    def can_repeat_clip(used_video_clips: list[VideoClip], repeat_clips) -> bool:
+        return repeat_clips and len(used_video_clips) > 0
     
-class CropClipBuilder(ClipBuilder):
+    @staticmethod
+    def round_time_to_fps(time: float, fps: int):
+        return round(int(math.ceil(time * fps)) / fps, ndigits=2)
 
-    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool):
+
+    @staticmethod
+    def get_random_start_time_for_part_of_clip_duration(clip_duration: float, part_duration: float):
+        return random.randint(0, math.floor((clip_duration - part_duration) * 100)) / 100.0
+
+
+class CropClipBuilder:
+
+    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool, fps: int):
         self.timeline_clips: list[VideoClip] = []
-        self.timeline_clips_to_write_to_file: list[VideoClip] = []
+        self.used_video_clips: list[VideoClip] = []
+        
+        self.used_clip_start_time = 0
         self.time_stops = time_stops
         self.video_resolution = video_resolution
-        self.full_length_concataneted_clips: list[VideoClip] = []
-        self.concataneted_clip_start_time = 0
         self.repeat_clips = repeat_clips
+        self.fps = fps
 
     def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, clips: list[VideoClip]):
         duration = end_time - start_time
             
-        concatenated_clip: VideoClip = ClipBuilder.compose_clip_with_min_duration(
+        clip: VideoClip = ClipBuilderHelper.compose_clip_with_min_duration(
             clips=clips,
             duration=duration,
-            previosely_composed_clips=self.full_length_concataneted_clips,
+            used_video_clips=self.used_video_clips,
             repeat_clips=self.repeat_clips
         )
         
-        self.concataneted_clip_start_time = self.concataneted_clip_start_time if ClipBuilder.can_repeat_clip(self.full_length_concataneted_clips, self.repeat_clips) else random.randint(0, math.floor((concatenated_clip.duration - duration) * 100)) / 100.0
-        self.full_length_concataneted_clips.append(concatenated_clip)
+        self.used_clip_start_time = self.used_clip_start_time \
+            if ClipBuilderHelper.can_repeat_clip(self.used_video_clips, self.repeat_clips) \
+            else ClipBuilderHelper.get_random_start_time_for_part_of_clip_duration(clip.duration, duration)
 
         
-        subclipped = concatenated_clip.subclipped(
-            start_time=self.concataneted_clip_start_time,
-            end_time=self.concataneted_clip_start_time + duration
+        subclipped = clip.subclipped(
+            start_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time, self.fps),
+            end_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time + duration, self.fps),
         )
-        timeline_clip = video_clip_transform.crop_video(self.video_resolution[0], self.video_resolution[1], subclipped)
-        self.timeline_clips.append(timeline_clip)
-            
         
-        subclipped_to_store = concatenated_clip.subclipped(
-            start_time=self.concataneted_clip_start_time,
-            end_time=self.concataneted_clip_start_time + duration + ClipBuilder.CLIP_TO_SAVE_EXTEND_TIME
-        )
-        timeline_clip_to_store = video_clip_transform.crop_video(self.video_resolution[0], self.video_resolution[1], subclipped_to_store)
-        self.timeline_clips_to_write_to_file.append(timeline_clip_to_store)
+        timeline_clip = video_clip_transform.crop_video(self.video_resolution[0], self.video_resolution[1], subclipped)
+        
+        self.timeline_clips.append(timeline_clip)
+        self.used_video_clips.append(clip)
 
 
     def build(self, clips: list[VideoClip]) -> ClipBuildResult:
@@ -114,24 +117,23 @@ class CropClipBuilder(ClipBuilder):
             
         return ClipBuildResult(
             timeline_clips=self.timeline_clips,
-            timeline_clips_to_write_to_file=self.timeline_clips_to_write_to_file
         )
             
     
     def close(self):
-        for c in self.timeline_clips + self.full_length_concataneted_clips + self.timeline_clips_to_write_to_file:
+        for c in self.timeline_clips + self.used_video_clips:
             c.close()
         
 
 class VideoTimelinePart:
-    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool):
+    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool, fps: int):
         self.timeline_clips: list[VideoClip] = []
-        self.timeline_clips_to_write_to_file: list[VideoClip] = []
         
         self.crop_clip_builder = CropClipBuilder(
             video_resolution=video_resolution,
             repeat_clips=repeat_clips,
             time_stops=time_stops,
+            fps=fps
         )
         
     def build_timeline_clips(self, clips: list[VideoClip]):
@@ -140,9 +142,6 @@ class VideoTimelinePart:
         for c in build_result.timeline_clips:
             self.timeline_clips.append(c)
         
-        for c in build_result.timeline_clips_to_write_to_file:
-            self.timeline_clips_to_write_to_file.append(c)
-        
     
     def close(self):
         self.crop_clip_builder.close()
@@ -150,10 +149,11 @@ class VideoTimelinePart:
 
 class VideoTimeline:
     
-    def __init__(self, time_stops: list[float], video_resolution: tuple[int,int]):
+    def __init__(self, time_stops: list[float], video_resolution: tuple[int,int], fps: int):
         self.parts: list[VideoTimelinePart] = []
         self.time_stops = time_stops
         self.video_resolution = video_resolution
+        self.fps = fps
         
     
     def split_timeline_into_parts(self):
@@ -171,7 +171,8 @@ class VideoTimeline:
                     VideoTimelinePart(
                         video_resolution=self.video_resolution,
                         time_stops=[x for x in part_time_stops],
-                        repeat_clips=True if random.random() < 0.3 and part_time_stops_count <= 3 else False))
+                        repeat_clips=True if random.random() < 0.3 and part_time_stops_count <= 3 else False,
+                        fps=self.fps))
                 
                 part_time_stops = [time_stop]
                 part_time_stops_count = random.choice(part_time_stops_total_counts)        
@@ -187,17 +188,7 @@ class VideoTimeline:
 
         return clips
                 
-    
-    def get_timeline_clips_to_store(self) -> list[VideoClip]:    
-        clips = []
-        
-        for p in self.parts:
-            for c in p.timeline_clips_to_write_to_file:
-                clips.append(c)
 
-        return clips
-                
-                
     def close(self):
         for p in self.parts:
             p.close()
@@ -224,8 +215,8 @@ class VideoProject:
         os.makedirs(self.save_dir_path, exist_ok=True)
 
         
-        self.clips: list[VideoClip] = self.load_clips(video_files_path_template)
-        self.timeline: VideoTimeline = VideoTimeline(time_stops=[0] + [float(c) for c in list(self._audio_peak_times)], video_resolution=resolution)
+        self.video_clips: list[VideoClip] = self.load_clips(video_files_path_template)
+        self.video_timeline: VideoTimeline = VideoTimeline(time_stops=[0] + [float(c) for c in list(self._audio_peak_times)], video_resolution=resolution, fps=fps)
         
         
     def load_clips(self, path_template: str):
@@ -249,20 +240,15 @@ class VideoProject:
     
     
     def build_timeline_clips(self):
-        for p in self.timeline.parts:
-            p.build_timeline_clips(clips=self.clips)
+        for p in self.video_timeline.parts:
+            p.build_timeline_clips(clips=self.video_clips)
             
     def split_timeline_into_parts(self):
-        self.timeline.split_timeline_into_parts()
+        self.video_timeline.split_timeline_into_parts()
         
         
     def get_timeline_clips(self) -> list[VideoClip]:
-        return self.timeline.get_timeline_clips()
-    
-    
-        
-    def get_timeline_clips_to_store(self) -> list[VideoClip]:
-        return self.timeline.get_timeline_clips_to_store()
+        return self.video_timeline.get_timeline_clips()
     
     
     def write_video_project_to_file(self):
@@ -274,12 +260,14 @@ class VideoProject:
         dir_path = f"{self.save_dir_path}/timeline_clips"
         os.makedirs(dir_path, exist_ok=True)
         
-        for index, c in enumerate(self.get_timeline_clips_to_store()):
+        for index, c in enumerate(self.get_timeline_clips()):
+            c.end += 0.25 / self.fps
+            c.duration += 0.25 / self.fps
             c.write_videofile(f"{dir_path}/clip_{index}.mp4", audio_codec="aac", logger=None, fps=self.fps)
 
     
     def close(self):
-        self.timeline.close()
+        self.video_timeline.close()
     
     
 
@@ -288,7 +276,7 @@ def build(video_files_path_template: str, audio_file_path_template: str, store_t
     
     project = VideoProject(
         resolution=(1280, 720),
-        fps=24,
+        fps=25,
         video_files_path_template = video_files_path_template,
         audio_file_path_template=audio_file_path_template
     )
