@@ -17,7 +17,7 @@ def crop_video(video_width, video_height, clip: VideoClip):
     )
     
     
-def set_clip_position(video_width, video_height, clip: VideoClip, position: tuple[int,int], max_position: tuple[int,int]) -> VideoClip:
+def set_clip_position(video_width, video_height, clip: VideoClip, position: tuple[int,int], max_position: tuple[int,int], offset_x:int=0, offset_y:int=0) -> VideoClip:
     clip_aspect = clip.w / clip.h
     aspect_ratio = video_width / video_height
     
@@ -38,13 +38,13 @@ def set_clip_position(video_width, video_height, clip: VideoClip, position: tupl
         height=clip_height
     )
     
-    clip_x = int((position[0] - 1) * clip_width) # top left corner
-    clip_y = int((position[1] - 1) * clip_height) # top left corner
+    clip_x = int((position[0] - 1) * clip_width) + offset_x # top left corner
+    clip_y = int((position[1] - 1) * clip_height) + offset_y # top left corner
     
     return cropped_clip.with_position((clip_x, clip_y))
 
 
-def split_screen_clips(video_width, video_height, clips: list[VideoClip], max_position: tuple[int,int], manual_positions: list[tuple[int,int]] | None = None):
+def split_screen_clips(video_width, video_height, clips: list[VideoClip], max_position: tuple[int,int], manual_positions: list[tuple[int,int]] | None = None, clips_margin: int = 0):
     rows, cols = max_position
     
     positions = []
@@ -58,7 +58,7 @@ def split_screen_clips(video_width, video_height, clips: list[VideoClip], max_po
     
     positioned_clips = []
     for i, c in enumerate(clips):
-        pos_clip = set_clip_position(c, position=positions[i], max_position=max_position)
+        pos_clip = set_clip_position(clip=c, position=positions[i], max_position=max_position, video_height=video_height, video_width=video_width)
         positioned_clips.append(pos_clip)
     
     return CompositeVideoClip(
