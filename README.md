@@ -13,7 +13,7 @@ source venv/bin/activate
 ### basic usage
 
 ```bash
-python main.py -i "input"
+python main.py -i "input" -r "1280x720" -f 25
 ```
 
 ### build plot with beats markers (where clips suppose to be changed)
@@ -25,5 +25,5 @@ python main.py -i "input" -p
 ### store sub clips used to build result video
 
 ```bash
-python main.py --store-sub-clips -i "input"
+python main.py --store-sub-clips -i "input" -r "1280x720" -f 25
 ```
