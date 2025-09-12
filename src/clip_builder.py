@@ -16,10 +16,6 @@ class VideoPosition(Enum):
     CROP = 1
     SPLIT_SCREEN = 2
 
-class ClipBuildResult:
-    def __init__(self, timeline_clips: list[VideoClip]):
-        self.timeline_clips: list[VideoClip] = timeline_clips
-
 
 class ClipBuilderHelper:
     @staticmethod
@@ -65,8 +61,7 @@ class ClipBuilderHelper:
         return random.randint(0, math.floor((clip_duration - part_duration) * 100)) / 100.0
 
 
-class CropClipBuilder:
-
+class CropedVideoTimelineBuilder:
     def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool, fps: int):
         self.timeline_clips: list[VideoClip] = []
         self.used_video_clips: list[VideoClip] = []
@@ -76,7 +71,21 @@ class CropClipBuilder:
         self.video_resolution = video_resolution
         self.repeat_clips = repeat_clips
         self.fps = fps
-
+        
+        
+    def build_timeline_clips(self, clips: list[VideoClip]):
+        if len(self.time_stops) == 0:
+            raise Exception("time_stops is empty. Cannot select clips for empty time stops")        
+        
+        
+        for i in range(1, len(self.time_stops)):
+            self.build__clip_bewteen_time_stops(
+                start_time=self.time_stops[i-1],
+                end_time=self.time_stops[i],
+                clips=clips
+            )
+        
+        
     def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, clips: list[VideoClip]):
         duration = end_time - start_time
             
@@ -103,54 +112,16 @@ class CropClipBuilder:
         self.used_video_clips.append(clip)
 
 
-    def build(self, clips: list[VideoClip]) -> ClipBuildResult:
-        if len(self.time_stops) == 0:
-            raise Exception("time_stops is empty. Cannot select clips for empty time stops")        
-        
-        
-        for i in range(1, len(self.time_stops)):
-            self.build__clip_bewteen_time_stops(
-                start_time=self.time_stops[i-1],
-                end_time=self.time_stops[i],
-                clips=clips
-            )
-            
-        return ClipBuildResult(
-            timeline_clips=self.timeline_clips,
-        )
-            
     
     def close(self):
         for c in self.timeline_clips + self.used_video_clips:
             c.close()
-        
-
-class VideoTimelinePart:
-    def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool, fps: int):
-        self.timeline_clips: list[VideoClip] = []
-        
-        self.crop_clip_builder = CropClipBuilder(
-            video_resolution=video_resolution,
-            repeat_clips=repeat_clips,
-            time_stops=time_stops,
-            fps=fps
-        )
-        
-    def build_timeline_clips(self, clips: list[VideoClip]):
-        build_result = self.crop_clip_builder.build(clips=clips)
-        
-        for c in build_result.timeline_clips:
-            self.timeline_clips.append(c)
-        
-    
-    def close(self):
-        self.crop_clip_builder.close()
 
 
 class VideoTimeline:
     
     def __init__(self, time_stops: list[float], video_resolution: tuple[int,int], fps: int):
-        self.parts: list[VideoTimelinePart] = []
+        self.timelime_builders: list[CropedVideoTimelineBuilder] = []
         self.time_stops = time_stops
         self.video_resolution = video_resolution
         self.fps = fps
@@ -167,8 +138,8 @@ class VideoTimeline:
             
             if len(part_time_stops) == part_time_stops_count or index == len(self.time_stops) - 1:
                 
-                self.parts.append(
-                    VideoTimelinePart(
+                self.timelime_builders.append(
+                    CropedVideoTimelineBuilder(
                         video_resolution=self.video_resolution,
                         time_stops=[x for x in part_time_stops],
                         repeat_clips=True if random.random() < 0.3 and part_time_stops_count <= 3 else False,
@@ -182,7 +153,7 @@ class VideoTimeline:
     def get_timeline_clips(self):
         clips = []
         
-        for p in self.parts:
+        for p in self.timelime_builders:
             for c in p.timeline_clips:
                 clips.append(c)
 
@@ -190,7 +161,7 @@ class VideoTimeline:
                 
 
     def close(self):
-        for p in self.parts:
+        for p in self.timelime_builders:
             p.close()
                 
 
@@ -240,7 +211,7 @@ class VideoProject:
     
     
     def build_timeline_clips(self):
-        for p in self.video_timeline.parts:
+        for p in self.video_timeline.timelime_builders:
             p.build_timeline_clips(clips=self.video_clips)
             
     def split_timeline_into_parts(self):
