@@ -84,7 +84,7 @@ class CropedVideoTimelineBuilder:
         self.used_clip_start_time = 0
         self.time_stops = time_stops
         self.video_resolution = video_resolution
-        self.repeat_clips = repeat_clips
+        self.repeat_clips = repeat_clips 
         self.fps = fps
         self.video_clips = video_clips
         
@@ -153,22 +153,14 @@ class SplitScreenVideoTimelineBuilder:
         if len(self.time_stops) == 0:
             raise Exception("time_stops is empty. Cannot select clips for empty time stops")        
         
-        center_clip: VideoClip = ClipBuilderHelper.compose_clip_with_min_duration(
-            clips=self.video_clips,
-            duration=self.time_stops[-1] - self.time_stops[0],
-            used_video_clips=[],
-            repeat_clips=False
-        ) if len(self.time_stops) > 2 else None
-        
         for i in range(1, len(self.time_stops)):
             self.build__clip_bewteen_time_stops(
                 start_time=self.time_stops[i-1],
-                end_time=self.time_stops[i],
-                center_clip=center_clip
+                end_time=self.time_stops[i]
             )
         
         
-    def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, center_clip: VideoClip | None):
+    def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, center_clip: VideoClip | None=None):
         duration = end_time - start_time
             
         clip_1: VideoClip = ClipBuilderHelper.compose_clip_with_min_duration(
@@ -239,27 +231,33 @@ class VideoTimeline:
         part_time_stops = []
         part_time_stops_count = random.choice(part_time_stops_total_counts)
         
+        matched_aspect_ratio_clips = [c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]
+        not_matched_aspect_ratio_clips = [c for c in self.video_clips if not ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]
+        
+        matched_aspect_ratio_clips_count = len(matched_aspect_ratio_clips)
+        total_clips_count = len(self.video_clips)
+        
         for index, time_stop in enumerate(self.time_stops):
             part_time_stops.append(time_stop)
             
             if len(part_time_stops) == part_time_stops_count or index == len(self.time_stops) - 1:
-                if len(self.timelime_builders) % 2 == 0:
+                if random.random() < 1.0 * matched_aspect_ratio_clips_count / total_clips_count:
                     self.timelime_builders.append(
                         CropedVideoTimelineBuilder(
                             video_resolution=self.video_resolution,
                             time_stops=[x for x in part_time_stops],
-                            repeat_clips=True if random.random() < 0.3 and part_time_stops_count <= 3 else False,
+                            repeat_clips=False,
                             fps=self.fps,
-                            video_clips=[c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]))
+                            video_clips=matched_aspect_ratio_clips))
                     
                 else:
                     self.timelime_builders.append(
                         SplitScreenVideoTimelineBuilder(
                             video_resolution=self.video_resolution,
                             time_stops=[x for x in part_time_stops],
-                            repeat_clips=True if random.random() < 0.3 and part_time_stops_count <= 3 else False,
+                            repeat_clips=False,
                             fps=self.fps,
-                            video_clips=[c for c in self.video_clips if not ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]))
+                            video_clips=not_matched_aspect_ratio_clips))
                     
                 
                 part_time_stops = [time_stop]

@@ -6,7 +6,7 @@ import librosa
 # Adjust values for specific music file 
 hop_length = 512
 peaks_height = [0, 1]
-peaks_distance = 10
+peaks_distance = 20
 peaks_prominence = 0.2
 
 
