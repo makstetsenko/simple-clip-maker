@@ -2,7 +2,7 @@ import src.video_clip_transform as video_clip_transform
 from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
 
 
-from moviepy import VideoClip
+from moviepy import VideoClip, vfx
 
 
 class SplitScreenVideoTimelineBuilder:
@@ -52,11 +52,11 @@ class SplitScreenVideoTimelineBuilder:
         self.used_clip_start_time_2 = self.get_clip_start_time(self.used_clip_start_time_2, self.used_video_clips_2, self.repeat_clips, clip_2.duration, duration)
 
 
-        subclipped_1 = clip_1.subclipped(
+        subclipped_1: VideoClip = clip_1.subclipped(
             start_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time_1, self.fps),
             end_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time_1 + duration, self.fps),
         )
-        subclipped_2 = clip_2.subclipped(
+        subclipped_2: VideoClip = clip_2.subclipped(
             start_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time_2, self.fps),
             end_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time_2 + duration, self.fps),
         )
@@ -64,8 +64,8 @@ class SplitScreenVideoTimelineBuilder:
         timeline_clip = video_clip_transform.split_screen_clips(
             video_width=self.video_resolution[0],
             video_height=self.video_resolution[1],
-            clips=[subclipped_1, subclipped_2, subclipped_1] if center_clip is None else [subclipped_1, center_clip, subclipped_2],
-            max_position=(3, 1) if ClipBuilderHelper.is_horizontal(self.video_resolution) else (1, 3)
+            clips=[subclipped_1, subclipped_2, subclipped_1.with_effects([vfx.MirrorX()])] if center_clip is None else [subclipped_1, center_clip, subclipped_2],
+            max_position=(3, 1) if ClipBuilderHelper.is_horizontal(self.video_resolution) else (1,3)
         )
 
         self.timeline_clips.append(timeline_clip)

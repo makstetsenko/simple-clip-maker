@@ -16,12 +16,17 @@ def plot_energy_with_peaks(norm_energy, peaks, sr, hop_length, audio_file_path):
     plt.legend()
     plt.tight_layout()
     
-    
-    output_file_name = audio_file_path.split("/")[-1].split(".")[0] + "_energy_peaks.png"
     # plt.savefig(output_file_name)
     plt.show()
 
 
 def build_plot(audio_file_path):
-    peaks, sample_rate, norm_energy, _ = peaks_detector.get_peaks_with_sample_rate_with_normalized_energy_with_amplitude_values(audio_file_path)
-    plot_energy_with_peaks(norm_energy, peaks, sample_rate, peaks_detector.hop_length, audio_file_path)
+    criteria=peaks_detector.GetPeaksCriteria(
+            peaks_distance=50,
+            peaks_prominence=0.4,
+            peaks_height=[0.5, 1]
+    )
+    
+    response = peaks_detector.get_peaks_with_sample_rate_with_normalized_energy_with_amplitude_values(audio_file_path, criteria)
+    
+    plot_energy_with_peaks(response.norm_energy, response.peaks, response.sample_rate, criteria.hop_length, audio_file_path)

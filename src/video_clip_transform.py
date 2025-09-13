@@ -21,38 +21,42 @@ def set_clip_position(video_width, video_height, clip: VideoClip, position: tupl
     clip_aspect = clip.w / clip.h
     aspect_ratio = video_width / video_height
     
-    rows, cols = max_position
+    cols, rows = max_position
     
-    clip_width = int(video_width / rows)
-    clip_height = int(video_height / cols)
+    clip_width = int(video_width / cols)
+    clip_height = int(video_height / rows)
     
     if clip_aspect > aspect_ratio:
-        scaled_clip: VideoClip = clip.resized(height=clip_height)
+        scaled_clip: VideoClip = clip.resized(height=clip_height*1.3)
     else:
-        scaled_clip: VideoClip = clip.resized(width=clip_width)
+        scaled_clip: VideoClip = clip.resized(width=clip_width*1.3)
                 
     cropped_clip = scaled_clip.cropped(
-        x_center=scaled_clip.w / 2,
-        y_center=scaled_clip.h / 2,
+        x_center=clip_width / 2,
+        y_center=clip_height / 2,
         width=clip_width,
         height=clip_height
     )
     
-    clip_x = int((position[0] - 1) * clip_width) + offset_x # top left corner
-    clip_y = int((position[1] - 1) * clip_height) + offset_y # top left corner
+    p_col, p_row = position
+
+    clip_x = int((p_col - 1) * clip_width) + offset_x # top left corner
+    clip_y = int((p_row - 1) * clip_height) + offset_y # top left corner
     
     return cropped_clip.with_position((clip_x, clip_y))
 
 
 def split_screen_clips(video_width, video_height, clips: list[VideoClip], max_position: tuple[int,int], manual_positions: list[tuple[int,int]] | None = None, clips_margin: int = 0):
-    rows, cols = max_position
+    cols, rows = max_position
+    
+    aspect_ratio = video_width / video_height
     
     positions = []
     
-    if manual_positions == None:    
+    if manual_positions == None:
         for r in range(1, rows + 1):
             for c in range(1, cols + 1):
-                positions.append((r, c))
+                positions.append((c, r))
     else:
         positions = manual_positions
     

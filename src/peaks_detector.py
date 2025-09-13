@@ -3,14 +3,23 @@ import scipy.signal
 import librosa
 
 
-# Adjust values for specific music file 
-hop_length = 512
-peaks_height = [0, 1]
-peaks_distance = 20
-peaks_prominence = 0.2
+class GetPeaksCriteria:
+    def __init__(self, hop_length: int = 512, peaks_height: list[float]=[0,1] ,peaks_distance: int = 20 ,peaks_prominence: float = 0.2):    
+        self.hop_length = hop_length
+        self.peaks_height = peaks_height
+        self.peaks_distance = peaks_distance
+        self.peaks_prominence = peaks_prominence
+    
+    
+class GetPeaksResponse:
+    def __init__(self, peaks, sample_rate, norm_energy, amplitude_values):
+        self.peaks = peaks
+        self.sample_rate = sample_rate
+        self.norm_energy = norm_energy
+        self.amplitude_values = amplitude_values
 
 
-def get_energy(y):
+def get_energy(y, hop_length):
     frame_length = 2048
     
     energy = np.array([
@@ -27,14 +36,14 @@ def get_norimized_energy(energy):
     return norm_energy
 
 
-def get_peaks_with_sample_rate_with_normalized_energy_with_amplitude_values(audio_file_path):
+def get_peaks_with_sample_rate_with_normalized_energy_with_amplitude_values(audio_file_path, criteria: GetPeaksCriteria) -> GetPeaksResponse:
     
     amplitude_values, sample_rate = librosa.load(audio_file_path, sr=None)
     
-    energy = get_energy(amplitude_values)
+    energy = get_energy(amplitude_values, criteria.hop_length)
     
     norm_energy = (energy - energy.min()) / (energy.max() - energy.min())
     
-    peaks, _ = scipy.signal.find_peaks(norm_energy, height=peaks_height, distance=peaks_distance, prominence=peaks_prominence)  # distance avoids close double-peaks
+    peaks, _ = scipy.signal.find_peaks(norm_energy, height=criteria.peaks_height, distance=criteria.peaks_distance, prominence=criteria.peaks_prominence)  # distance avoids close double-peaks
     
-    return (peaks, sample_rate, norm_energy, amplitude_values)
+    return GetPeaksResponse(peaks, sample_rate, norm_energy, amplitude_values)

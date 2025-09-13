@@ -41,12 +41,20 @@ class ClipBuilderHelper:
 
     @staticmethod
     def round_time_to_fps(time: float, fps: int):
-        return round(int(math.ceil(time * fps)) / fps, ndigits=2)
+        return round(int(math.floor(time * fps)) / fps, ndigits=2)
 
 
     @staticmethod
     def get_random_start_time_for_desired_of_clip_duration(full_clip_duration: float, desired_duration: float):
-        return random.randint(0, math.floor((full_clip_duration - desired_duration) * 100)) / 100.0
+        start = random.randint(0, math.floor((full_clip_duration - desired_duration) * 100)) / 100.0
+        
+        if start < 0:
+            return 0
+        
+        if start > full_clip_duration - desired_duration:
+            return full_clip_duration - desired_duration
+        
+        return start
 
 
     @staticmethod
