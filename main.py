@@ -2,6 +2,7 @@ import argparse
 import src.plot_builder as plot_builder
 import src.clip_builder.clip_builder as clip_builder
 import glob
+import logging
 
 movie_formats = ["m4v", "mov", "mp4", "M4V", "MOV", "MP4"]
 
@@ -18,6 +19,8 @@ def get_args():
 
 
 def main():
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO, datefmt='%Y-%m-%dT%H:%M:%S')
+    
     args = get_args()
     music_path_template = args.input_dir_path.rstrip("/") + "/*.mp3"
     music_file_path = glob.glob(music_path_template)[0]

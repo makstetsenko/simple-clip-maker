@@ -1,4 +1,4 @@
-import src.video_clip_transform as video_clip_transform
+import src.clip_builder.video_clip_transform as video_clip_transform
 from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
 
 

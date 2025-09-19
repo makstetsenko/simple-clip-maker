@@ -1,12 +1,15 @@
 from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
-from src.clip_builder.CropedVideoTimelineBuilder import CropedVideoTimelineBuilder
-from src.clip_builder.SplitScreenVideoTimelineBuilder import SplitScreenVideoTimelineBuilder
+from src.clip_builder.timeline_builders.CropedVideoTimelineBuilder import CropedVideoTimelineBuilder
+from src.clip_builder.timeline_builders.SplitScreenVideoTimelineBuilder import SplitScreenVideoTimelineBuilder
 
 
 from moviepy import VideoClip
 
 
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VideoTimeline:
@@ -58,14 +61,14 @@ class VideoTimeline:
                 part_time_stops_count = random.choice(part_time_stops_total_counts)
 
 
-        print("Split video timeline. Done.")
+        logger.info("Split video timeline. Done.")
 
 
     def build_timeline_clips(self):
         for b in self.timelime_builders:
             b.build_timeline_clips()
 
-        print("Build timeline clips. Done.")
+        logger.info("Build timeline clips. Done.")
 
     def get_timeline_clips(self):
         clips = []
@@ -81,4 +84,4 @@ class VideoTimeline:
         for p in self.timelime_builders:
             p.close()
 
-        print("Closed clips.")
+        logger.info("Closed clips.")
