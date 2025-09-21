@@ -3,7 +3,9 @@ from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
 
 
 from moviepy import VideoClip, vfx
+import logging
 
+logger = logging.getLogger(__name__)
 
 class SplitScreenVideoTimelineBuilder:
     def __init__(self, video_resolution: tuple[int,int], time_stops: list[float], repeat_clips: bool, fps: int, video_clips: list[VideoClip]):
@@ -65,7 +67,8 @@ class SplitScreenVideoTimelineBuilder:
             video_width=self.video_resolution[0],
             video_height=self.video_resolution[1],
             clips=[subclipped_1, subclipped_2, subclipped_1.with_effects([vfx.MirrorX()])] if center_clip is None else [subclipped_1, center_clip, subclipped_2],
-            max_position=(3, 1) if ClipBuilderHelper.is_horizontal(self.video_resolution) else (1,3)
+            max_position=(3, 1) if ClipBuilderHelper.is_horizontal(self.video_resolution) else (1,3),
+            clip_duration=duration
         )
 
         self.timeline_clips.append(timeline_clip)
@@ -77,7 +80,7 @@ class SplitScreenVideoTimelineBuilder:
     def get_clip_start_time(self, used_clip_start_time: float, used_video_clips: list[VideoClip], repeat_clips: bool, full_clip_duration, desired_duration):
         return used_clip_start_time \
             if ClipBuilderHelper.can_repeat_clip(used_video_clips, repeat_clips) \
-            else ClipBuilderHelper.get_random_start_time_for_desired_of_clip_duration(full_clip_duration, desired_duration)
+            else ClipBuilderHelper.get_random_start_time_for_minimum_required_duration(full_clip_duration, desired_duration)
 
 
 

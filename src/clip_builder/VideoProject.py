@@ -1,7 +1,7 @@
 import src.peaks_detector as peaks_detector
 from src.clip_builder.VideoTimeline import VideoTimeline
 import src.clip_builder.video_clip_transform as video_clip_transform
-from src.clip_builder.effects.zoom_effects import ease_out_zoom_on_time_stops
+from src.clip_builder.effects.zoom_effects import bump_zoom_on_time_stops
 
 import librosa
 import numpy as np
@@ -26,10 +26,10 @@ class VideoProject:
         self.fps = fps
 
         self._audio_file_path = glob.glob(audio_file_path_template)[0]
-        self._audio_peak_times = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
-            peaks_distance=50,
-            peaks_prominence=0.4,
-            peaks_height=[0.5, 1]
+        self._prominance_audio_peak_times = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
+            peaks_distance=15,
+            peaks_prominence=0.2,
+            peaks_height=[0, 1]
         ))
 
         self.project_name = self._audio_file_path.split("/")[-1].split(".")[0]
@@ -38,7 +38,7 @@ class VideoProject:
 
 
         self.video_clips: list[VideoClip] = self.load_clips(video_files_path_template)
-        self.video_timeline: VideoTimeline = VideoTimeline(time_stops=[0] + [float(c) for c in list(self._audio_peak_times)], video_resolution=resolution, fps=fps, video_clips=self.video_clips)
+        self.video_timeline: VideoTimeline = VideoTimeline(time_stops=[0] + [float(c) for c in list(self._prominance_audio_peak_times)], video_resolution=resolution, fps=fps, video_clips=self.video_clips)
 
 
     def load_clips(self, path_template: str):
@@ -78,23 +78,24 @@ class VideoProject:
     def write_video_project_to_file(self, apply_zoom_bump_effect: bool = False):
         concatenated: VideoClip = concatenate_videoclips(self.get_timeline_clips())
         
-        if apply_zoom_bump_effect:
-            peak_times_for_zoom = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
-                peaks_distance=20,
-                peaks_prominence=0.4,
-                peaks_height=[0.7, 1]
-            ))
+        # if apply_zoom_bump_effect:
+        #     peak_times_for_zoom = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
+        #         peaks_distance=20,
+        #         peaks_prominence=0.4,
+        #         peaks_height=[0.7, 1]
+        #     ))
             
-            # clip = concatenated
-            clip = VideoClip(
-                frame_function=lambda t: ease_out_zoom_on_time_stops(
-                    frame_time=t, 
-                    clip=concatenated, 
-                    time_stops=peak_times_for_zoom,
-                    video_resolution=(self.video_width, self.video_height)), 
-                duration=concatenated.duration)
-        else:
-            clip = concatenated
+        #     # clip = concatenated
+        #     clip = VideoClip(
+        #         frame_function=lambda t: bump_zoom_on_time_stops(
+        #             frame_time=t, 
+        #             clip=concatenated, 
+        #             time_stops=peak_times_for_zoom,
+        #             video_resolution=(self.video_width, self.video_height)), 
+        #         duration=concatenated.duration)
+        # else:
+        #     clip = concatenated
+        clip = concatenated
         
         clip.write_videofile(f"{self.save_dir_path}/{self.project_name}.mp4", audio=self._audio_file_path, audio_codec="aac", fps=self.fps)
         

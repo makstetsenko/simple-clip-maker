@@ -22,9 +22,9 @@ def plot_energy_with_peaks(norm_energy, peaks, sr, hop_length, audio_file_path):
 
 def build_plot(audio_file_path):
     criteria=peaks_detector.GetPeaksCriteria(
-            peaks_distance=50,
-            peaks_prominence=0.4,
-            peaks_height=[0.5, 1]
+            peaks_distance=15,
+            peaks_prominence=0.2,
+            peaks_height=[0, 1]
     )
     
     response = peaks_detector.get_peaks_with_sample_rate_with_normalized_energy_with_amplitude_values(audio_file_path, criteria)
