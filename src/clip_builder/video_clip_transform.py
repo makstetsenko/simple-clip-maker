@@ -24,11 +24,14 @@ def crop_video(video_width, video_height, clip: VideoClip):
     )
     
     
-def set_clip_position(video_width, video_height, clip: VideoClip, position: tuple[int,int], max_position: tuple[int,int], offset_x:int=0, offset_y:int=0) -> VideoClip:
-    cols, rows = max_position
+def set_clip_position(video_width, video_height, clip: VideoClip, position: tuple[int,int], position_layout: tuple[int,int], offset_x:int=0, offset_y:int=0, scale_factor: float = 1.0) -> VideoClip:
+    cols, rows = position_layout
     
-    clip_width = int(video_width / cols)
-    clip_height = int(video_height / rows)
+    cell_width = int(video_width / cols)
+    cell_height = int(video_height / rows)
+    
+    clip_width = int(cell_width * scale_factor) 
+    clip_height = int(cell_height * scale_factor)
     
     if clip_width > clip_height:
         scaled_clip: VideoClip = clip.resized(width=clip_width)
@@ -44,30 +47,48 @@ def set_clip_position(video_width, video_height, clip: VideoClip, position: tupl
     
     p_col, p_row = position
 
-    clip_x = int((p_col - 1) * clip_width) + (clip_width - cropped_clip.w) // 2 + offset_x # top left corner
-    clip_y = int((p_row - 1) * clip_height) + (clip_height - cropped_clip.h) // 2 + offset_y # top left corner
+    clip_x = int((p_col - 1) * cell_width) + (cell_width - cropped_clip.w) // 2 + offset_x # top left corner
+    clip_y = int((p_row - 1) * cell_height) + (cell_height - cropped_clip.h) // 2 + offset_y # top left corner
     
     return cropped_clip.with_position((clip_x, clip_y))
 
 
-def split_screen_clips(video_width, video_height, clips: list[VideoClip], max_position: tuple[int,int], manual_positions: list[tuple[int,int]] | None = None, clips_margin: int = 0, clip_duration: float | None = None):
-    cols, rows = max_position
+class SplitScreenCriteria:
+    def __init__(self, clip: VideoClip, position:tuple[int,int] | None = None, scale_factor:float = 1):
+        self.clip = clip
+        self.position = position
+        self.scale_factor = scale_factor
+
+
+def get_positions_from_layout(position_layout: tuple[int,int]):
+    cols, rows = position_layout
     
     positions = []
     
-    if manual_positions == None:
-        for r in range(1, rows + 1):
-            for c in range(1, cols + 1):
-                positions.append((c, r))
-    else:
-        positions = manual_positions
+    for r in range(1, rows + 1):
+        for c in range(1, cols + 1):
+            positions.append((c, r))
+            
+    return positions
+
+def split_screen_clips(
+    video_width, 
+    video_height, 
+    clips_criterias: list[SplitScreenCriteria], 
+    position_layout: tuple[int,int], 
+    clips_margin: int = 0, 
+    clip_duration: float | None = None,
+):
+    default_positions = get_positions_from_layout(position_layout)
     
     positioned_clips = []
-    for i, c in enumerate(clips):
-        pos_clip = set_clip_position(clip=c, position=positions[i], max_position=max_position, video_height=video_height, video_width=video_width)
+    for i, clip_criteria in enumerate(clips_criterias):
+        clip_position = clip_criteria.position if clip_criteria.position != None else default_positions[i]
+        
+        pos_clip = set_clip_position(clip=clip_criteria.clip, position=clip_position, position_layout=position_layout, video_height=video_height, video_width=video_width, scale_factor=clip_criteria.scale_factor)
         positioned_clips.append(pos_clip)
         
-    duration = clips[0].duration if clip_duration == None else clip_duration
+    duration = clips_criterias[0].clip.duration if clip_duration == None else clip_duration
     
     return CompositeVideoClip(
         clips=positioned_clips, 

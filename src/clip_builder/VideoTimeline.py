@@ -2,7 +2,7 @@ from src.clip_builder.effects.effect_types import VideoEffectType
 from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
 from src.clip_builder.timeline_builders.CropedVideoTimelineBuilder import CropedVideoTimelineBuilder
 from src.clip_builder.timeline_builders.SplitScreenVideoTimelineBuilder import SplitScreenVideoTimelineBuilder
-
+import json
 
 from moviepy import VideoClip
 
@@ -28,26 +28,40 @@ class VideoTimeline:
         groups, threshold = self.group_nearby_time_stops(self.time_stops)
         time_stop_groups = self.connect_fast_slow_time_stops(groups)
         
+        logger.info(f"Splitted timeline into groups (threshold {threshold}s)")
+        logger.info(f"Groups:\n{json.dumps(time_stop_groups)}")
+        
 
         matched_aspect_ratio_clips = [c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]
         not_matched_aspect_ratio_clips = [c for c in self.video_clips if not ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]
 
         matched_aspect_ratio_clips_count = len(matched_aspect_ratio_clips)
+        not_matched_aspect_ratio_clips_count = len(not_matched_aspect_ratio_clips)
         total_clips_count = len(self.video_clips)
+
+        matching_ratio_multiplier = 4.0
+        matching_clip_appearign_freq = matching_ratio_multiplier * matched_aspect_ratio_clips_count / (matched_aspect_ratio_clips_count * matching_ratio_multiplier + not_matched_aspect_ratio_clips_count)
         
         for times_group in time_stop_groups:
-            if random.random() < 1.0 * matched_aspect_ratio_clips_count / total_clips_count:
+            if random.random() < matching_clip_appearign_freq:
                 
-                is_fast_changing = np.median(np.diff(times_group)) <= threshold
+                time_diff_median = np.median(np.diff(times_group))
+                
+                is_fast_changing = time_diff_median <= threshold * 1.2
+                is_slow_changing = time_diff_median > threshold * 2
                 
                 apply_effects = []
                 use_single_clip = False
-                
-                if is_fast_changing:
-                    apply_effects.append(VideoEffectType.PanZoom)
-                else:
-                    apply_effects.append(VideoEffectType.BumpZoomOnTimeStops)
+
+                if 3 < len(time_stop_groups) <= 10:
                     use_single_clip = True
+                    apply_effects.append(VideoEffectType.BumpZoomOnTimeStops)
+                else:
+                    apply_effects.append(VideoEffectType.PanZoom)
+                    
+                    
+                # if is_slow_changing:
+                #     apply_effects.append(VideoEffectType.BumpZoomOnTimeStops)
 
                 self.timelime_builders.append(
                     CropedVideoTimelineBuilder(
@@ -101,14 +115,15 @@ class VideoTimeline:
         if len(values) < 2:
             return [values]
 
-        threshold = np.median(np.diff(values))
+        threshold = np.median(np.diff(values)) * 0.8
 
         groups = [[values[0]]]
         for v in values[1:]:
             if v - groups[-1][-1] <= threshold:
-                groups[-1].append(round(v, ndigits=2))
+                groups[-1].append(v)
             else:
-                groups.append([round(v, ndigits=2)])
+                groups.append([v])
+
         return groups, threshold
     
     

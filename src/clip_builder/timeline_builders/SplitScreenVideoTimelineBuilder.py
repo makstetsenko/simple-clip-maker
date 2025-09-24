@@ -1,5 +1,6 @@
 import src.clip_builder.video_clip_transform as video_clip_transform
 from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
+from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame, bump_zoom_on_time_stops
 
 
 from moviepy import VideoClip, vfx
@@ -29,11 +30,12 @@ class SplitScreenVideoTimelineBuilder:
         for i in range(1, len(self.time_stops)):
             self.build__clip_bewteen_time_stops(
                 start_time=self.time_stops[i-1],
-                end_time=self.time_stops[i]
+                end_time=self.time_stops[i],
+                iteraton=i
             )
 
 
-    def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, center_clip: VideoClip | None=None):
+    def build__clip_bewteen_time_stops(self, start_time: float, end_time: float, iteraton: int):
         duration = end_time - start_time
 
         clip_1: VideoClip = ClipBuilderHelper.compose_clip_with_min_duration(
@@ -62,14 +64,26 @@ class SplitScreenVideoTimelineBuilder:
             start_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time_2, self.fps),
             end_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time_2 + duration, self.fps),
         )
+        
+        position_layout = (3, 1) if ClipBuilderHelper.is_horizontal(self.video_resolution) else (1,3)
+        clip_positions = video_clip_transform.get_positions_from_layout(position_layout)
+        
+        zoom_effect_criteria = PanZoomEffectCriteria(start_zoom=1.0, end_zoom=1.1)
+        zoom_effect_criteria_reversed = PanZoomEffectCriteria(start_zoom=1.1, end_zoom=1.0)
 
         timeline_clip = video_clip_transform.split_screen_clips(
             video_width=self.video_resolution[0],
             video_height=self.video_resolution[1],
-            clips=[subclipped_1, subclipped_2, subclipped_1.with_effects([vfx.MirrorX()])] if center_clip is None else [subclipped_1, center_clip, subclipped_2],
-            max_position=(3, 1) if ClipBuilderHelper.is_horizontal(self.video_resolution) else (1,3),
-            clip_duration=duration
+            clips_criterias=[
+                video_clip_transform.SplitScreenCriteria(clip=subclipped_1, position=clip_positions[0], scale_factor=0.9),
+                video_clip_transform.SplitScreenCriteria(clip=subclipped_1.with_effects([vfx.MirrorX()]), position=clip_positions[2], scale_factor=0.9),
+                video_clip_transform.SplitScreenCriteria(clip=pan_zoom_frame(subclipped_2, zoom_effect_criteria), scale_factor=1.15, position=clip_positions[1]),
+            ],
+            position_layout=position_layout,
+            clip_duration=duration,
         )
+        
+        timeline_clip = pan_zoom_frame(timeline_clip, zoom_effect_criteria if iteraton % 2 == 0 else zoom_effect_criteria_reversed)
 
         self.timeline_clips.append(timeline_clip)
         self.used_video_clips_1.append(clip_1)

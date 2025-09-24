@@ -38,8 +38,9 @@ class PanZoomEffectCriteria:
         self.pan = pan
 
 
-def pan_zoom_frame(clip: VideoClip, video_resolution: tuple[int,int], criteria: PanZoomEffectCriteria = PanZoomEffectCriteria()):    
-    video_width, video_height = video_resolution
+def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria = PanZoomEffectCriteria()):        
+    video_width = clip.w
+    video_height = clip.h
 
     def make_frame(get_frame, t):
         frame = get_frame(t)

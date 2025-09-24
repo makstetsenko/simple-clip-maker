@@ -28,8 +28,8 @@ class VideoProject:
         self._audio_file_path = glob.glob(audio_file_path_template)[0]
         self._prominance_audio_peak_times = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
             peaks_distance=15,
-            peaks_prominence=0.2,
-            peaks_height=[0, 1]
+            peaks_prominence=0.3,
+            peaks_height=[0.55, 1]
         ))
 
         self.project_name = self._audio_file_path.split("/")[-1].split(".")[0]

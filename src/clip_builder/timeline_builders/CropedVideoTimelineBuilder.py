@@ -123,7 +123,6 @@ class CropedVideoTimelineBuilder:
                 
                 clip_with_effect = pan_zoom_frame(
                     clip=clip_with_effect, 
-                    video_resolution=self.video_resolution,
                     criteria=criteria,
                 )
                 

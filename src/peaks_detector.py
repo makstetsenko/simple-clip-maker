@@ -4,7 +4,7 @@ import librosa
 
 
 class GetPeaksCriteria:
-    def __init__(self, hop_length: int = 512, peaks_height: list[float]=[0,1] ,peaks_distance: int = 20 ,peaks_prominence: float = 0.2):    
+    def __init__(self, hop_length: int = 128, peaks_height: list[float]=[0,1] ,peaks_distance: int = 20 ,peaks_prominence: float = 0.2):    
         self.hop_length = hop_length
         self.peaks_height = peaks_height
         self.peaks_distance = peaks_distance
@@ -20,7 +20,7 @@ class GetPeaksResponse:
 
 
 def get_energy(y, hop_length):
-    frame_length = 2048
+    frame_length = 1024
     
     energy = np.array([
         np.sum(np.abs(y[i:i+frame_length]**2))
