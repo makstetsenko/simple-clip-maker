@@ -3,6 +3,7 @@ from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
 from src.clip_builder.timeline_builders.CropedVideoTimelineBuilder import CropedVideoTimelineBuilder
 from src.clip_builder.timeline_builders.SplitScreenVideoTimelineBuilder import SplitScreenVideoTimelineBuilder
 import json
+from src.clip_builder.LoopedCollection import LoopedCollection
 
 from moviepy import VideoClip
 
@@ -29,59 +30,51 @@ class VideoTimeline:
         time_stop_groups = self.connect_fast_slow_time_stops(groups)
         
         logger.info(f"Splitted timeline into groups (threshold {threshold}s)")
-        logger.info(f"Groups:\n{json.dumps(time_stop_groups)}")
+        logger.info(f"Timestop groups count {len(time_stop_groups)}")
+
+        matched_aspect_ratio_clips = LoopedCollection([c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])])
+        not_matched_aspect_ratio_clips = LoopedCollection([c for c in self.video_clips if not ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])])
+
+        matched_aspect_ratio_clips_count = matched_aspect_ratio_clips.length()
+        not_matched_aspect_ratio_clips_count = not_matched_aspect_ratio_clips.length()
         
-
-        matched_aspect_ratio_clips = [c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]
-        not_matched_aspect_ratio_clips = [c for c in self.video_clips if not ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])]
-
-        matched_aspect_ratio_clips_count = len(matched_aspect_ratio_clips)
-        not_matched_aspect_ratio_clips_count = len(not_matched_aspect_ratio_clips)
-        total_clips_count = len(self.video_clips)
-
         matching_ratio_multiplier = 4.0
         matching_clip_appearign_freq = matching_ratio_multiplier * matched_aspect_ratio_clips_count / (matched_aspect_ratio_clips_count * matching_ratio_multiplier + not_matched_aspect_ratio_clips_count)
         
+        
+        
         for times_group in time_stop_groups:
             if random.random() < matching_clip_appearign_freq:
+                logger.info("Build crop clip")
                 
                 time_diff_median = np.median(np.diff(times_group))
                 
-                is_fast_changing = time_diff_median <= threshold * 1.2
-                is_slow_changing = time_diff_median > threshold * 2
-                
                 apply_effects = []
                 use_single_clip = False
-
-                if 3 < len(time_stop_groups) <= 10:
-                    use_single_clip = True
-                    apply_effects.append(VideoEffectType.BumpZoomOnTimeStops)
-                else:
-                    apply_effects.append(VideoEffectType.PanZoom)
-                    
-                    
-                # if is_slow_changing:
-                #     apply_effects.append(VideoEffectType.BumpZoomOnTimeStops)
+                
+                apply_effects.append(VideoEffectType.PanZoom)
 
                 self.timelime_builders.append(
                     CropedVideoTimelineBuilder(
                         video_resolution=self.video_resolution,
-                        time_stops=[x for x in times_group],
+                        time_stops=times_group,
                         repeat_clips=False,
                         fps=self.fps,
-                        video_clips=matched_aspect_ratio_clips,
+                        video_clips=matched_aspect_ratio_clips.get_next_chunk(chunk_size=1 if use_single_clip else len(times_group)-1),
                         apply_effects=apply_effects,
                         use_single_clip=use_single_clip
                     ))
 
             else:
+                logger.info("Build split-screen clip")
+                
                 self.timelime_builders.append(
                     SplitScreenVideoTimelineBuilder(
                         video_resolution=self.video_resolution,
-                        time_stops=[x for x in times_group],
+                        time_stops=times_group,
                         repeat_clips=False,
                         fps=self.fps,
-                        video_clips=not_matched_aspect_ratio_clips))
+                        video_clips=not_matched_aspect_ratio_clips.get_next_chunk(chunk_size=(len(times_group)-1) * 2)))
 
 
         logger.info("Split video timeline. Done.")

@@ -28,8 +28,9 @@ class VideoProject:
         self._audio_file_path = glob.glob(audio_file_path_template)[0]
         self._prominance_audio_peak_times = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
             peaks_distance=15,
-            peaks_prominence=0.3,
-            peaks_height=[0.55, 1]
+            peaks_prominence=0.5,
+            peaks_height=[0, 1],
+            hop_length=512
         ))
 
         self.project_name = self._audio_file_path.split("/")[-1].split(".")[0]
@@ -43,10 +44,17 @@ class VideoProject:
 
     def load_clips(self, path_template: str):
         clips = []
+        
+        path_list = []
         for template in path_template.split(","):
             for g in glob.glob(template):
-                clips.append(VideoFileClip(g))
+                path_list.append(g)
 
+        path_list.sort()
+
+        for path in path_list:
+            clips.append(VideoFileClip(path))
+        
         logger.info("Loaded clips.")
         return clips
 
@@ -77,24 +85,6 @@ class VideoProject:
 
     def write_video_project_to_file(self, apply_zoom_bump_effect: bool = False):
         concatenated: VideoClip = concatenate_videoclips(self.get_timeline_clips())
-        
-        # if apply_zoom_bump_effect:
-        #     peak_times_for_zoom = self.get_peak_times(self._audio_file_path, criteria=peaks_detector.GetPeaksCriteria(
-        #         peaks_distance=20,
-        #         peaks_prominence=0.4,
-        #         peaks_height=[0.7, 1]
-        #     ))
-            
-        #     # clip = concatenated
-        #     clip = VideoClip(
-        #         frame_function=lambda t: bump_zoom_on_time_stops(
-        #             frame_time=t, 
-        #             clip=concatenated, 
-        #             time_stops=peak_times_for_zoom,
-        #             video_resolution=(self.video_width, self.video_height)), 
-        #         duration=concatenated.duration)
-        # else:
-        #     clip = concatenated
         clip = concatenated
         
         clip.write_videofile(f"{self.save_dir_path}/{self.project_name}.mp4", audio=self._audio_file_path, audio_codec="aac", fps=self.fps)
@@ -112,7 +102,7 @@ class VideoProject:
         for index, c in enumerate(self.get_timeline_clips()):
             c.end += 0.01
             c.duration += 0.01
-            c.write_videofile(f"{dir_path}/clip_{index}.mp4", audio_codec="aac", logger=None, fps=self.fps)
+            c.write_videofile(f"{dir_path}/clip_{index}.mp4", logger=None, fps=self.fps, audio=False) # for some reason audio cause save failing
 
         logger.info("Save timeline clips. Done.")
 

@@ -39,17 +39,10 @@ class ClipBuilderHelper:
     def can_repeat_clip(used_video_clips: list[VideoClip], repeat_clips) -> bool:
         return repeat_clips and len(used_video_clips) > 0
 
-    @staticmethod
-    def round_time_to_fps(time: float, fps: int):
-        return round(int(math.floor(time * fps)) / fps, ndigits=2)
-
 
     @staticmethod
     def get_random_start_time_for_minimum_required_duration(full_clip_duration: float, required_duration: float):
         start = random.randint(0, math.floor((full_clip_duration - required_duration) * 100)) / 100.0
-        
-        if start < 0:
-            return 1
         
         if start > full_clip_duration - required_duration:
             return full_clip_duration - required_duration - 1

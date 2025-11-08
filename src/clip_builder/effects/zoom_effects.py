@@ -1,5 +1,6 @@
 from moviepy import VideoClip, CompositeVideoClip
 import cv2
+import math
 
 def bump_zoom_on_time_stops(clip: VideoClip, time_stops: list[float], video_resolution: tuple[int,int], bump_duration_seconds: float = 0.25, zoom_amount_percent: int = 10):
 
@@ -45,19 +46,16 @@ def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria = PanZoomEff
     def make_frame(get_frame, t):
         frame = get_frame(t)
 
-        progress = min(t / clip.duration, 1.0)
-
-        # easing (smooth in/out)
-        ease = 3 * progress**2 - 2 * progress**3
+        progress = math.sqrt(4.0 * t / clip.duration)
 
         # zoom interpolation
-        zoom = criteria.start_zoom + (criteria.end_zoom - criteria.start_zoom) * ease
+        zoom = criteria.start_zoom + (criteria.end_zoom - criteria.start_zoom) * progress
         new_w = int(video_width / zoom)
         new_h = int(video_height / zoom)
 
         # pan interpolation
-        pan_x = int(criteria.pan[0] * ease)
-        pan_y = int(criteria.pan[1] * ease)
+        pan_x = int(criteria.pan[0] * progress)
+        pan_y = int(criteria.pan[1] * progress)
 
         # cropping box relative to center + pan
         x1 = (video_width - new_w) // 2 + pan_x

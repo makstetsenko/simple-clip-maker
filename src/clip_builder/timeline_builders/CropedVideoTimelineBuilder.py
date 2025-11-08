@@ -62,8 +62,8 @@ class CropedVideoTimelineBuilder:
         start_time = ClipBuilderHelper.get_random_start_time_for_minimum_required_duration(full_clip_duration=clip.duration, required_duration=duration)
         
         subclipped: VideoClip = clip.subclipped(
-            start_time=ClipBuilderHelper.round_time_to_fps(start_time, self.fps),
-            end_time=ClipBuilderHelper.round_time_to_fps(start_time + duration, self.fps),
+            start_time=start_time,
+            end_time=start_time + duration,
         )
         
         cropped = video_clip_transform.crop_video(self.video_resolution[0], self.video_resolution[1], subclipped)
@@ -92,8 +92,8 @@ class CropedVideoTimelineBuilder:
 
 
         subclipped: VideoClip = clip.subclipped(
-            start_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time, self.fps),
-            end_time=ClipBuilderHelper.round_time_to_fps(self.used_clip_start_time + duration, self.fps),
+            start_time=self.used_clip_start_time,
+            end_time=self.used_clip_start_time + duration,
         )
 
         cropped = video_clip_transform.crop_video(self.video_resolution[0], self.video_resolution[1], subclipped)

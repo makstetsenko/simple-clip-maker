@@ -17,7 +17,7 @@ python -m pip install -r ./requirements.txt
 ### basic usage
 
 ```bash
-python main.py -i "input" -r "1280x720" -f 25
+python main.py -i "input" -r "1280x720" -f 30
 ```
 
 ### build plot with beats markers (where clips suppose to be changed)
