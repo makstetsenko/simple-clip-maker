@@ -26,10 +26,8 @@ class VideoTimeline:
         self.video_clips = video_clips
 
     def split_timeline_into_parts(self):
-        groups, threshold = self.group_nearby_time_stops(self.time_stops)
-        time_stop_groups = self.connect_fast_slow_time_stops(groups)
+        time_stop_groups = self.get_time_stops_groups(self.time_stops)
         
-        logger.info(f"Splitted timeline into groups (threshold {threshold}s)")
         logger.info(f"Timestop groups count {len(time_stop_groups)}")
 
         matched_aspect_ratio_clips = LoopedCollection([c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])])
@@ -41,13 +39,9 @@ class VideoTimeline:
         matching_ratio_multiplier = 4.0
         matching_clip_appearign_freq = matching_ratio_multiplier * matched_aspect_ratio_clips_count / (matched_aspect_ratio_clips_count * matching_ratio_multiplier + not_matched_aspect_ratio_clips_count)
         
-        
-        
         for times_group in time_stop_groups:
             if random.random() < matching_clip_appearign_freq:
                 logger.info("Build crop clip")
-                
-                time_diff_median = np.median(np.diff(times_group))
                 
                 apply_effects = []
                 use_single_clip = False
@@ -60,10 +54,11 @@ class VideoTimeline:
                         time_stops=times_group,
                         repeat_clips=False,
                         fps=self.fps,
-                        video_clips=matched_aspect_ratio_clips.get_next_chunk(chunk_size=1 if use_single_clip else len(times_group)-1),
+                        video_clips=matched_aspect_ratio_clips.get_next_chunk(chunk_size=1),
                         apply_effects=apply_effects,
                         use_single_clip=use_single_clip
-                    ))
+                    )
+                )
 
             else:
                 logger.info("Build split-screen clip")
@@ -74,7 +69,9 @@ class VideoTimeline:
                         time_stops=times_group,
                         repeat_clips=False,
                         fps=self.fps,
-                        video_clips=not_matched_aspect_ratio_clips.get_next_chunk(chunk_size=(len(times_group)-1) * 2)))
+                        video_clips=not_matched_aspect_ratio_clips.get_next_chunk(chunk_size=2)
+                    )
+                )
 
 
         logger.info("Split video timeline. Done.")
@@ -102,43 +99,14 @@ class VideoTimeline:
 
         logger.info("Closed clips.")
         
+    def get_time_stops_groups(self, time_stops: list[float]) -> list[list[float]]:
+        res = []
         
-    def group_nearby_time_stops(self, values):
-        values = sorted(values)
-        if len(values) < 2:
-            return [values]
+        if time_stops[0] != 0:
+            res.append([0, time_stops[0]])
 
-        threshold = np.median(np.diff(values)) * 0.8
+        for i in range(1, len(time_stops)):
+            res.append([time_stops[i-1], time_stops[i]])
 
-        groups = [[values[0]]]
-        for v in values[1:]:
-            if v - groups[-1][-1] <= threshold:
-                groups[-1].append(v)
-            else:
-                groups.append([v])
-
-        return groups, threshold
-    
-    
-    def connect_fast_slow_time_stops(self, groups):
-        connected = []
-        for i, g in enumerate(groups):
-            
-            if i == 0:
-                connected.append(g)
-                continue
-            
-            if len(g) == 1 and len(groups[i-1]) == 1:
-                connected[-1].append(g[0])
-                continue
-                
-            if len(g) > 1 and len(groups[i-1]) == 1:
-                connected[-1].append(g[0])
-                continue
-                
-            if len(groups[i-1]) > 1:
-                connected.append(groups[i-1])
-                connected.append([groups[i-1][-1], g[0]])
-                continue
-
-        return connected
+        
+        return res
