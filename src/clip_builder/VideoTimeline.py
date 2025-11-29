@@ -1,112 +1,116 @@
-from src.clip_builder.effects.effect_types import VideoEffectType
-from src.clip_builder.ClipBuilderHelper import ClipBuilderHelper
-from src.clip_builder.timeline_builders.CropedVideoTimelineBuilder import CropedVideoTimelineBuilder
-from src.clip_builder.timeline_builders.SplitScreenVideoTimelineBuilder import SplitScreenVideoTimelineBuilder
-import json
-from src.clip_builder.LoopedCollection import LoopedCollection
+from src.clip_builder import video_clip_transform
+from src.clip_builder.VideoNode import VideoNode
+from src.clip_builder.VideoResolution import VideoResolution
+from src.clip_builder.audio_analyzer import AudioAnalyzeResult
 
-from moviepy import VideoClip
+from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips
 
 
 import random
 import numpy as np
 import logging
+import os
+import shutil
 
 logger = logging.getLogger(__name__)
 
 
 class VideoTimeline:
 
-    def __init__(self, time_stops: list[float], video_resolution: tuple[int,int], fps: int, video_clips: list[VideoClip]):
-        self.timelime_builders: list = []
-        self.time_stops = time_stops
-        self.video_resolution = video_resolution
-        self.video_aspect_ratio = video_resolution[0] / video_resolution[1]
+    def __init__(
+            self,
+            fps: int,
+            resolution: VideoResolution,
+            audio_analysis: AudioAnalyzeResult,
+            video_analysis: list[VideoNode],
+            temp_path: str
+        ):
+        
         self.fps = fps
-        self.video_clips = video_clips
-
-    def split_timeline_into_parts(self):
-        time_stop_groups = self.get_time_stops_groups(self.time_stops)
+        self.resolution = resolution
+        self.audio_analysis = audio_analysis
+        self.video_analysis = video_analysis
+        self.temp_path = temp_path
+        self.padding = 1.0/self.fps # 1 frame duration padding
         
-        logger.info(f"Timestop groups count {len(time_stop_groups)}")
-
-        matched_aspect_ratio_clips = LoopedCollection([c for c in self.video_clips if ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])])
-        not_matched_aspect_ratio_clips = LoopedCollection([c for c in self.video_clips if not ClipBuilderHelper.are_matching_aspect_ratios([c.aspect_ratio, self.video_aspect_ratio])])
-
-        matched_aspect_ratio_clips_count = matched_aspect_ratio_clips.length()
-        not_matched_aspect_ratio_clips_count = not_matched_aspect_ratio_clips.length()
         
-        matching_ratio_multiplier = 4.0
-        matching_clip_appearign_freq = matching_ratio_multiplier * matched_aspect_ratio_clips_count / (matched_aspect_ratio_clips_count * matching_ratio_multiplier + not_matched_aspect_ratio_clips_count)
+    def build_timeline_clip(self) -> str:
+        segments = self.build_segment_clips()
+        clips = [VideoFileClip(s) for s in segments]
         
-        for times_group in time_stop_groups:
-            if random.random() < matching_clip_appearign_freq:
-                logger.info("Build crop clip")
+        chained_clip_path = f"{self.temp_path}/chained_clip.mp4"
+        chained_clip = concatenate_videoclips(clips=clips, method="compose")
+        chained_clip.write_videofile(chained_clip_path, audio=None, fps=self.fps)
+        
+        for c in clips:
+            c.close()
+        
+        chained_clip.close()
+        
+        return chained_clip_path
+            
+        
+        
+    def build_segment_clips(self):
+        segment_clips = []
+        video_node = self.video_analysis[0]
+        
+        for segment in self.audio_analysis.beat_segments:
+            logger.info(f"Building segment {segment.index}/{len(self.audio_analysis.beat_segments)}")
+            
+            if self.resolution.matches_aspect_ratio(video_node.resolution):
+                scene = random.choice(video_node.scenes)
                 
-                apply_effects = []
-                use_single_clip = False
+                clip = VideoFileClip(video_node.path)
+                subclipped: VideoClip = clip.subclipped(start_time=scene.start_time, end_time=scene.start_time + segment.duration + self.padding)
                 
-                apply_effects.append(VideoEffectType.PanZoom)
-
-                self.timelime_builders.append(
-                    CropedVideoTimelineBuilder(
-                        video_resolution=self.video_resolution,
-                        time_stops=times_group,
-                        repeat_clips=False,
-                        fps=self.fps,
-                        video_clips=matched_aspect_ratio_clips.get_next_chunk(chunk_size=1),
-                        apply_effects=apply_effects,
-                        use_single_clip=use_single_clip
-                    )
-                )
-
+                segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
+                segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
+                segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+                segment_clips.append(segment_clip_path)
+                
+                segment_clip.close()
+                subclipped.close()
+                clip.close()
             else:
-                logger.info("Build split-screen clip")
+                video_node_2 = video_node.find_next(lambda x: not x.resolution.matches_aspect_ratio(self.resolution))
                 
-                self.timelime_builders.append(
-                    SplitScreenVideoTimelineBuilder(
-                        video_resolution=self.video_resolution,
-                        time_stops=times_group,
-                        repeat_clips=False,
-                        fps=self.fps,
-                        video_clips=not_matched_aspect_ratio_clips.get_next_chunk(chunk_size=2)
-                    )
+                scene_1 = random.choice(video_node.scenes)
+                scene_2 = random.choice(video_node_2.scenes)
+                
+                
+                clip_1 = VideoFileClip(video_node.path)
+                clip_2 = VideoFileClip(video_node_2.path)
+                
+                subclipped_1: VideoClip = clip_1.subclipped(start_time=scene_1.start_time, end_time=scene_1.start_time + segment.duration + self.padding)
+                subclipped_2: VideoClip = clip_2.subclipped(start_time=scene_2.start_time, end_time=scene_2.start_time + segment.duration + self.padding)
+                
+                position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
+                clip_positions = video_clip_transform.get_positions_from_layout(position_layout)
+                
+                segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
+                segment_clip: VideoClip = video_clip_transform.split_screen_clips(
+                    video_width=self.resolution.width,
+                    video_height=self.resolution.height,
+                    clips_criterias=[
+                        video_clip_transform.SplitScreenCriteria(clip=subclipped_1, position=clip_positions[0], scale_factor=0.95),
+                        video_clip_transform.SplitScreenCriteria(clip=subclipped_2, scale_factor=1.1, position=clip_positions[1]),
+                        video_clip_transform.SplitScreenCriteria(clip=subclipped_1.with_effects([vfx.MirrorX()]), position=clip_positions[2], scale_factor=0.95),
+                    ],
+                    position_layout=position_layout,
+                    clip_duration=segment.duration,
                 )
-
-
-        logger.info("Split video timeline. Done.")
-
-
-    def build_timeline_clips(self):
-        for b in self.timelime_builders:
-            b.build_timeline_clips()
-
-        logger.info("Build timeline clips. Done.")
-
-    def get_timeline_clips(self):
-        clips = []
-
-        for p in self.timelime_builders:
-            for c in p.timeline_clips:
-                clips.append(c)
-
-        return clips
-
-
-    def close(self):
-        for p in self.timelime_builders:
-            p.close()
-
-        logger.info("Closed clips.")
-        
-    def get_time_stops_groups(self, time_stops: list[float]) -> list[list[float]]:
-        res = []
-        
-        if time_stops[0] != 0:
-            res.append([0, time_stops[0]])
-
-        for i in range(1, len(time_stops)):
-            res.append([time_stops[i-1], time_stops[i]])
-
-        
-        return res
+                
+                segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+                segment_clips.append(segment_clip_path)
+                
+                segment_clip.close()
+                subclipped_1.close()
+                subclipped_2.close()
+                clip_1.close()
+                clip_2.close()
+                
+            
+            video_node = video_node.next
+            
+        return segment_clips
