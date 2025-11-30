@@ -6,3 +6,4 @@ matplotlib
 argparse
 scikit-image
 opencv-python
+black

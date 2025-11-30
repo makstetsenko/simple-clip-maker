@@ -2,7 +2,14 @@ from moviepy import VideoClip, CompositeVideoClip
 import cv2
 import math
 
-def bump_zoom_on_time_stops(clip: VideoClip, time_stops: list[float], video_resolution: tuple[int,int], bump_duration_seconds: float = 0.25, zoom_amount_percent: int = 10):
+
+def bump_zoom_on_time_stops(
+    clip: VideoClip,
+    time_stops: list[float],
+    video_resolution: tuple[int, int],
+    bump_duration_seconds: float = 0.25,
+    zoom_amount_percent: int = 10,
+):
 
     video_width, video_height = video_resolution
 
@@ -31,15 +38,15 @@ def bump_zoom_on_time_stops(clip: VideoClip, time_stops: list[float], video_reso
 
     return clip.transform(lambda get_frame, t: make_frame(get_frame, t), apply_to=["mask", "audio"])
 
-    
+
 class PanZoomEffectCriteria:
-    def __init__(self, start_zoom: int = 1.0, end_zoom: int = 1.5, pan: tuple[int,int] = (0, 0)):
+    def __init__(self, start_zoom: int = 1.0, end_zoom: int = 1.5, pan: tuple[int, int] = (0, 0)):
         self.start_zoom = start_zoom
         self.end_zoom = end_zoom
         self.pan = pan
 
 
-def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria = PanZoomEffectCriteria()):        
+def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria = PanZoomEffectCriteria()):
     video_width = clip.w
     video_height = clip.h
 
@@ -74,4 +81,3 @@ def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria = PanZoomEff
         return frame
 
     return clip.transform(make_frame, apply_to=["mask", "audio"])
-    

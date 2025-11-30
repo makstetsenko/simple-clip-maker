@@ -11,19 +11,19 @@ class IntencityBand:
 
 class BeatTrend:
     """
-    Describes trending intencity.
-    
+    Describes trending intensity.
+
     For example:
-    
+
     t0->t1
-    
+
     IF t0.intensity = medium and t1.intensity = low THEN t0.trend = down
-    
+
     IF t0.intensity = medium and t1.intensity = hight THEN t0.trend = up
-    
+
     IF t0.intensity = medium and t1.intensity = medium THEN t0.trend = flat
     """
-    
+
     UP = "up"
     FLAT = "flat"
     DOWN = "down"
@@ -31,16 +31,16 @@ class BeatTrend:
 
 class BeatSegment:
     def __init__(
-            self,
-            index: int,
-            start_time: float,
-            energy: float,
-            intensity_band: str,
-            energy_delta: float,
-            trend: str, 
-            similar_group: int, 
-            reverse_candidate: bool
-        ):
+        self,
+        index: int,
+        start_time: float,
+        energy: float,
+        intensity_band: str,
+        energy_delta: float,
+        trend: str,
+        similar_group: int,
+        reverse_candidate: bool,
+    ):
         self.index = index
         self.start_time = start_time
         self.end_time = None
@@ -52,7 +52,7 @@ class BeatSegment:
         self.reverse_candidate = reverse_candidate
         self.next: BeatSegment | None = None
         self.duration = 0
-        
+
     @staticmethod
     def create_default():
         return BeatSegment(
@@ -63,7 +63,7 @@ class BeatSegment:
             energy_delta=0,
             reverse_candidate=False,
             similar_group=0,
-            trend=BeatTrend.FLAT
+            trend=BeatTrend.FLAT,
         )
 
     def set_end_time(self, end_time):
@@ -73,29 +73,49 @@ class BeatSegment:
     def to_json(self):
         return {
             "index": self.index,
-            "start_time": self.start_time, 
-            "end_time": self.end_time, 
+            "start_time": self.start_time,
+            "end_time": self.end_time,
             "duration": self.duration,
-            "energy": self.energy, 
-            "intensity_band": self.intensity_band, 
-            "energy_delta": self.energy_delta, 
-            "trend": self.trend, 
-            "similar_group": self.similar_group, 
-            "reverse_candidate": self.reverse_candidate, 
-        } 
+            "energy": self.energy,
+            "intensity_band": self.intensity_band,
+            "energy_delta": self.energy_delta,
+            "trend": self.trend,
+            "similar_group": self.similar_group,
+            "reverse_candidate": self.reverse_candidate,
+        }
+
+    @staticmethod
+    def from_json(value: dict):
+        segment = BeatSegment(
+            index=value["index"],
+            start_time=value["start_time"],
+            energy=value["energy"],
+            intensity_band=value["intensity_band"],
+            energy_delta=value["energy_delta"],
+            trend=value["trend"],
+            similar_group=value["similar_group"],
+            reverse_candidate=value["reverse_candidate"],
+        )
+        segment.set_end_time(end_time=value["end_time"])
+        return segment
+
 
 class BeatGrid:
     def __init__(self, beats: list[float], half: list[float], double: list[float]):
         self.beats = beats
         self.half = half
         self.double = double
-        
+
     def to_json(self):
         return {
             "beats": self.beats,
             "half": self.half,
             "double": self.double,
         }
+
+    @staticmethod
+    def from_json(value: dict):
+        return BeatGrid(beats=value["beats"], double=value["double"], half=value["half"])
 
 
 class AudioAnalyzeResult:
@@ -112,9 +132,19 @@ class AudioAnalyzeResult:
             "duration": self.duration,
             "tempo": self.tempo,
             "grid": self.grid.to_json(),
-            "beats": [b.to_json() for b in self.beat_segments],
+            "beat_segments": [b.to_json() for b in self.beat_segments],
         }
-    
+
+    @staticmethod
+    def from_json(value: dict):
+        return AudioAnalyzeResult(
+            sample_rate=value["sample_rate"],
+            duration=value["duration"],
+            tempo=value["tempo"],
+            grid=BeatGrid.from_json(value["grid"]),
+            beat_segments=[BeatSegment.from_json(b) for b in value["beat_segments"]],
+        )
+
 
 def subdivide_beats(beat_times: np.ndarray, subdivision: int = 2) -> np.ndarray:
     """Create sub-beat grid between beats (for double-time, etc.)."""
@@ -132,28 +162,23 @@ def subdivide_beats(beat_times: np.ndarray, subdivision: int = 2) -> np.ndarray:
     return np.array(grid)
 
 
-def analyze_music_for_editing(audio_path: str,
-                              hop_length: int = 512,
-                              n_mfcc: int = 5,
-                              similarity_threshold: float = 0.8) -> AudioAnalyzeResult:
+def analyze_music_for_editing(
+    audio_path: str, hop_length: int = 512, n_mfcc: int = 5, similarity_threshold: float = 0.8
+) -> AudioAnalyzeResult:
     # 1. Load
     y, sr = librosa.load(audio_path, sr=None)
     duration = librosa.get_duration(y=y, sr=sr)
 
     # 2. Beat / rhythm grid
     onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop_length)
-    tempo, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env,
-                                                 sr=sr,
-                                                 hop_length=hop_length)
+    tempo, beat_frames = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=hop_length)
     beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=hop_length)
 
     # 3. Energy + simple timbre features per frame
     rms = librosa.feature.rms(y=y, hop_length=hop_length)[0]
     mfcc = librosa.feature.mfcc(y=y, sr=sr, hop_length=hop_length, n_mfcc=n_mfcc)
 
-    frame_times = librosa.frames_to_time(np.arange(len(onset_env)),
-                                         sr=sr,
-                                         hop_length=hop_length)
+    frame_times = librosa.frames_to_time(np.arange(len(onset_env)), sr=sr, hop_length=hop_length)
 
     # 4. Sample features at each beat (nearest frame)
     feat_per_beat = []
@@ -177,9 +202,7 @@ def analyze_music_for_editing(audio_path: str,
 
     # 5. Normalize energy and features
     if per_beat_energy.max() > per_beat_energy.min():
-        energy_norm = (per_beat_energy - per_beat_energy.min()) / (
-            per_beat_energy.max() - per_beat_energy.min()
-        )
+        energy_norm = (per_beat_energy - per_beat_energy.min()) / (per_beat_energy.max() - per_beat_energy.min())
     else:
         energy_norm = np.zeros_like(per_beat_energy)
 
@@ -237,8 +260,7 @@ def analyze_music_for_editing(audio_path: str,
     reverse_candidates = []
     for i in range(1, n_beats - 1):
         # big local bump or dip
-        if (energy_delta[i - 1] > 0.2 and energy_delta[i] < -0.2) or \
-           (energy_delta[i - 1] < -0.2 and energy_delta[i] > 0.2):
+        if (energy_delta[i - 1] > 0.2 and energy_delta[i] < -0.2) or (energy_delta[i - 1] < -0.2 and energy_delta[i] > 0.2):
             reverse_candidates.append(True)
         else:
             reverse_candidates.append(False)
@@ -253,11 +275,11 @@ def analyze_music_for_editing(audio_path: str,
             index=(i + 1),
             start_time=float(t),
             energy=float(energy_norm[i]),
-            intensity_band=intensity_bands[i],      # low / medium / high
-            energy_delta=float(energy_delta[i]),    # to next beat
-            trend=trends[i],                        # up / down / flat
-            similar_group=int(group_ids[i]+1),        # group for duplication
-            reverse_candidate=bool(reverse_candidates[i])
+            intensity_band=intensity_bands[i],  # low / medium / high
+            energy_delta=float(energy_delta[i]),  # to next beat
+            trend=trends[i],  # up / down / flat
+            similar_group=int(group_ids[i] + 1),  # group for duplication
+            reverse_candidate=bool(reverse_candidates[i]),
         )
         beats[-1].next = descriptor
         beats[-1].set_end_time(descriptor.start_time)
@@ -276,10 +298,5 @@ def analyze_music_for_editing(audio_path: str,
         duration=float(duration),
         tempo=float(tempo),
         beat_segments=beats,
-        grid=BeatGrid(
-            half=grid_half.tolist(),
-            beats=grid_beat.tolist(),
-            double=grid_double.tolist())
+        grid=BeatGrid(half=grid_half.tolist(), beats=grid_beat.tolist(), double=grid_double.tolist()),
     )
-
-

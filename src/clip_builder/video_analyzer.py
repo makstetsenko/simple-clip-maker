@@ -14,25 +14,38 @@ class SceneInfo:
     start_time: float
     end_time: float
     duration: float
-    intensity_score: float       # normalized 0–1 (relative intensity)
+    intensity_score: float  # normalized 0–1 (relative intensity)
     intensity_level: IntensityLevel
     is_static: bool
     hist_diff: float
     diff_norm: float
-    
+
     def to_json(self):
         return {
             "index": self.index,
             "start_time": self.start_time,
             "end_time": self.end_time,
             "duration": self.duration,
-            # "intensity_score": self.intensity_score,
-            # "intensity_level": self.intensity_level,            
-            "is_static": self.is_static,  
+            "intensity_score": self.intensity_score,
+            "intensity_level": self.intensity_level,
+            "is_static": self.is_static,
             "hist_diff": self.hist_diff,
-            "diff_norm": self.diff_norm,          
+            "diff_norm": self.diff_norm,
         }
 
+    @staticmethod
+    def from_json(value: dict):
+        return SceneInfo(
+            index=value["index"],
+            start_time=value["start_time"],
+            end_time=value["end_time"],
+            duration=value["duration"],
+            intensity_score=value["intensity_score"],
+            intensity_level=value["intensity_level"],
+            is_static=value["is_static"],
+            hist_diff=value["hist_diff"],
+            diff_norm=value["diff_norm"],
+        )
 
 
 # w_hist, w_ssim, w_edge, w_flow
@@ -42,10 +55,11 @@ class SceneInfo:
 # Increase w_edge → cuts driven more by edge-structure changes.
 # Increase w_flow → cuts driven more by motion discontinuities.
 
+
 def analyze_video_scenes(
     video_path: str,
-    frame_step: int = 2,          # sample every Nth frame (affects scene count)
-    scene_k_sigma: float = 2,   # threshold = mean + k * std of combined diff
+    frame_step: int = 2,  # sample every Nth frame (affects scene count)
+    scene_k_sigma: float = 2,  # threshold = mean + k * std of combined diff
     min_scene_duration: float = 1.0,  # merge scenes shorter than this (sec)
     w_hist: float = 0.4,
     w_ssim: float = 0.3,
@@ -89,8 +103,8 @@ def analyze_video_scenes(
     prev_flow = None
 
     frame_idx = 0
-    
-    scale=0.3
+
+    scale = 0.3
 
     while True:
         ret, frame_normal = cap.read()
@@ -105,7 +119,7 @@ def analyze_video_scenes(
         times.append(t)
 
         frame = cv2.resize(frame_normal, (0, 0), fx=scale, fy=scale)
-        
+
         # increase contrast
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(4, 4))
@@ -128,12 +142,8 @@ def analyze_video_scenes(
 
         # ----- histogram diff (HSV) -----
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        hsv[...,2] = clahe.apply(hsv[...,2])  # boost V (brightness)
-        hist = cv2.calcHist(
-            [hsv], [0, 1], None,
-            [32, 32],    # bins for H and S
-            [0, 180, 0, 256]
-        )
+        hsv[..., 2] = clahe.apply(hsv[..., 2])  # boost V (brightness)
+        hist = cv2.calcHist([hsv], [0, 1], None, [32, 32], [0, 180, 0, 256])  # bins for H and S
         cv2.normalize(hist, hist)
 
         if prev_hist is None:
@@ -167,9 +177,16 @@ def analyze_video_scenes(
             flow_mag = 0.0
         else:
             flow = cv2.calcOpticalFlowFarneback(
-                prev_gray, gray, None,
-                pyr_scale=0.5, levels=3, winsize=15,
-                iterations=3, poly_n=5, poly_sigma=1.2, flags=0
+                prev_gray,
+                gray,
+                None,
+                pyr_scale=0.5,
+                levels=3,
+                winsize=15,
+                iterations=3,
+                poly_n=5,
+                poly_sigma=1.2,
+                flags=0,
             )
             mag = np.sqrt(flow[..., 0] ** 2 + flow[..., 1] ** 2)
             flow_mag = float(np.mean(mag))
@@ -238,12 +255,7 @@ def analyze_video_scenes(
     w_flow /= w_sum
 
     # ----- combined difference per frame (this drives cuts) -----
-    combined_diff = (
-        w_hist * hist_n +
-        w_ssim * ssim_n +
-        w_edge * edge_n +
-        w_flow * flow_n
-    )
+    combined_diff = w_hist * hist_n + w_ssim * ssim_n + w_edge * edge_n + w_flow * flow_n
 
     # ignore first few frames for stats to avoid startup artifacts
     diffs_for_stats = combined_diff[5:] if n > 5 else combined_diff
@@ -296,18 +308,14 @@ def analyze_video_scenes(
 
     # fixed internal weights for intensity (do not affect scene count)
     im_w_motion, im_w_edge, im_w_bright = 0.5, 0.3, 0.2
-    frame_intensity = (
-        im_w_motion * motions_n +
-        im_w_edge * edges_density_n +
-        im_w_bright * bright_n
-    )
+    frame_intensity = im_w_motion * motions_n + im_w_edge * edges_density_n + im_w_bright * bright_n
 
     # ----- aggregate intensity per scene -----
     scene_scores: List[float] = []
     scene_times: List[tuple[float, float]] = []
 
     for start_idx, end_idx in merged_ranges:
-        scores = frame_intensity[start_idx:end_idx + 1]
+        scores = frame_intensity[start_idx : end_idx + 1]
         if scores.size == 0:
             continue
         score = float(scores.mean())
@@ -341,7 +349,7 @@ def analyze_video_scenes(
                 index=idx,
                 start_time=start_t,
                 end_time=end_t,
-                duration=end_t-start_t,
+                duration=end_t - start_t,
                 intensity_score=float(score_norm),
                 intensity_level=level(score_norm),
             )
@@ -350,18 +358,14 @@ def analyze_video_scenes(
     return scenes
 
 
-
-
-
 def analyze_on_static_scenes(
     video_path: str,
-    time_step: float = 0.3,           # analyze every time_step seconds
-    scene_duration_threshold: float = 2, # minimum scene duration in seconds to accept into result
-    scale: float = 0.5,            # downscale for speed
-
-    STATIC_THRESHOLD: float = 0.01,   # <2% frame change = static
+    time_step: float = 0.3,  # analyze every time_step seconds
+    scene_duration_threshold: float = 2,  # minimum scene duration in seconds to accept into result
+    scale: float = 0.5,  # downscale for speed
+    STATIC_THRESHOLD: float = 0.01,  # <2% frame change = static
     MOTION_CUT_THRESHOLD: float = 0.15,  # >15% change = strong change
-    HARD_CUT_THRESHOLD: float = 0.2    # >15% hist diff = hard cut
+    HARD_CUT_THRESHOLD: float = 0.2,  # >15% hist diff = hard cut
 ) -> List[SceneInfo]:
 
     cap = cv2.VideoCapture(video_path)
@@ -377,7 +381,7 @@ def analyze_on_static_scenes(
 
     scenes: List[SceneInfo] = []
     scene_start_t = 0.0
-    scene_is_static = True   # assume static first
+    scene_is_static = True  # assume static first
     scene_counter = 0
 
     while True:
@@ -442,7 +446,7 @@ def analyze_on_static_scenes(
                     index=scene_counter,
                     start_time=scene_start_t,
                     end_time=t,
-                    duration = duration,
+                    duration=duration,
                     is_static=scene_is_static,
                     intensity_level="low",
                     intensity_score=0,
@@ -454,7 +458,7 @@ def analyze_on_static_scenes(
 
             # start new scene
             scene_start_t = t
-            scene_is_static = (frame_type == "static")
+            scene_is_static = frame_type == "static"
 
         # update previous frame
         prev_gray = gray
@@ -482,9 +486,10 @@ def analyze_on_static_scenes(
 
 @dataclass
 class VideoFileDetails:
-    duration: float #seconds
-    resolution: tuple[int,int]
+    duration: float  # seconds
+    resolution: tuple[int, int]
     fps: int
+
 
 def video_details(path):
     cap = cv2.VideoCapture(path)
@@ -498,8 +503,4 @@ def video_details(path):
 
     cap.release()
 
-    return VideoFileDetails(
-        duration = duration,
-        resolution = (width, height),
-        fps = fps
-    )
+    return VideoFileDetails(duration=duration, resolution=(width, height), fps=fps)
