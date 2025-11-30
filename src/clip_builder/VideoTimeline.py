@@ -5,11 +5,15 @@ from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
 from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
 
+import src.clip_builder.effect_presets.zoom as zoom_effect_preset
+import src.clip_builder.effect_presets.pan as pan_effect_preset
+
 from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips
 
 
 import random
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -63,38 +67,15 @@ class VideoTimeline:
         return segment_clips
 
     def get_crop_segment_clip(self, video_node: VideoNode, segment: BeatSegment):
-        scene = self.get_video_Scene(video_node, segment)
+        scene = self.get_video_scene(video_node, segment)
 
-        clip = VideoFileClip(video_node.path)
+        clip = self.get_clip(video_node, segment)
         subclipped = self.get_sub_clip(segment, scene, clip)
 
         segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
         segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
 
-        zoom_factor = 1.3
-        zoom_in_criteria = PanZoomEffectCriteria(
-            start_zoom=1.0, end_zoom=zoom_factor, start_time=0, duration=subclipped.duration / 3.0, easing="ease_out"
-        )
-
-        middle_zoom = PanZoomEffectCriteria(
-            start_zoom=zoom_factor,
-            end_zoom=zoom_factor,
-            start_time=subclipped.duration / 3.0,
-            duration=subclipped.duration / 3.0,
-            easing=None,
-        )
-
-        zoom_out_criteria = PanZoomEffectCriteria(
-            start_zoom=zoom_factor,
-            end_zoom=1.0,
-            start_time=subclipped.duration / 3.0 * 2.0,
-            duration=subclipped.duration / 3.0,
-            easing="ease_in",
-        )
-
-        segment_clip: VideoClip = pan_zoom_frame(segment_clip, zoom_in_criteria)
-        segment_clip: VideoClip = pan_zoom_frame(segment_clip, middle_zoom)
-        segment_clip: VideoClip = pan_zoom_frame(segment_clip, zoom_out_criteria)
+        segment_clip = pan_effect_preset.pan(segment_clip, pan=(0, 2000),easing=None)
 
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
@@ -106,8 +87,8 @@ class VideoTimeline:
     def get_split_screen_segment_clip(self, video_node: VideoNode, segment: BeatSegment):
         video_node_2 = video_node.find_next(lambda x: x.resolution.matches_aspect_ratio(video_node.resolution))
 
-        scene_1 = self.get_video_Scene(video_node, segment)
-        scene_2 = self.get_video_Scene(video_node_2, segment)
+        scene_1 = self.get_video_scene(video_node, segment)
+        scene_2 = self.get_video_scene(video_node_2, segment)
 
         clip_1 = VideoFileClip(video_node.path)
         clip_2 = VideoFileClip(video_node_2.path)
@@ -152,9 +133,11 @@ class VideoTimeline:
         clip_2.close()
         return segment_clip_path
 
-    def get_video_Scene(self, video_node: VideoNode, segment: BeatSegment) -> SceneInfo:
-        scenes = [s for s in video_node.scenes if s.duration >= segment.duration]
-        return random.choice(scenes)
+    def get_video_scene(self, video_node: VideoNode, segment: BeatSegment) -> SceneInfo:
+        return random.choice(video_node.scenes)
+
+    def get_clip(self, video_node: VideoNode, segment: BeatSegment) -> VideoClip:
+        return VideoFileClip(video_node.path)
 
     def get_sub_clip(self, segment: BeatSegment, scene: SceneInfo, clip: VideoClip) -> VideoClip:
         requires_frame_drift = segment.duration <= 0.55

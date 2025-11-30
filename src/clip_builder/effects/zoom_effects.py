@@ -51,11 +51,13 @@ class PanZoomEffectCriteria:
         easing: EasingType | None,
         start_zoom: int = 1.0,
         end_zoom: int = 1.5,
-        pan: tuple[int, int] = (0, 0),
+        start_pan_position: tuple[int, int] = (0, 0),
+        end_pan_position: tuple[int, int] = (0, 0),
     ):
         self.start_zoom = start_zoom
         self.end_zoom = end_zoom
-        self.pan = pan
+        self.start_pan_position = start_pan_position
+        self.end_pan_position = end_pan_position
         self.duration = duration
         self.start_time = start_time
         self.easing: EasingType | None = easing
@@ -90,8 +92,8 @@ def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria):
         new_h = int(video_height / zoom)
 
         # pan interpolation
-        pan_x = int(criteria.pan[0] * eased)
-        pan_y = int(criteria.pan[1] * eased)
+        pan_x = criteria.start_pan_position[0] + int(criteria.end_pan_position[0] * eased)
+        pan_y = criteria.start_pan_position[1] + int(criteria.end_pan_position[1] * eased)
 
         # cropping box relative to center + pan
         x1 = (video_width - new_w) // 2 + pan_x

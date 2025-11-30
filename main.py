@@ -1,5 +1,4 @@
 import argparse
-import src.plot_builder as plot_builder
 import src.clip_builder.clip_builder as clip_builder
 import glob
 import logging
@@ -25,13 +24,7 @@ def get_args():
         help='Output video resolution. For example "1280x720"',
     )
     parser.add_argument("--fps", "-f", type=str, required=False, help="Output video FPS")
-    parser.add_argument(
-        "--plot",
-        "-p",
-        action="store_true",
-        required=False,
-        help="Build peaks plot to investigate them",
-    )
+
     parser.add_argument(
         "--save-timeline-clips",
         "-st",
@@ -52,11 +45,6 @@ def main():
 
     args = get_args()
     music_path_template = args.input_dir_path.rstrip("/") + "/*.mp3"
-    music_file_path = glob.glob(music_path_template)[0]
-
-    if args.plot:
-        plot_builder.build_plot(music_file_path)
-        return
 
     video_resolution_items = args.video_resolution.split("x")
     clip_builder.build(
