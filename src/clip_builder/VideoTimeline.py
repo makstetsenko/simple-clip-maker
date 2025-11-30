@@ -1,7 +1,9 @@
+from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
+from src.clip_builder.video_analyzer import SceneInfo
 from src.clip_builder import video_clip_transform
 from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
-from src.clip_builder.audio_analyzer import AudioAnalyzeResult
+from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
 
 from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips
 
@@ -28,7 +30,6 @@ class VideoTimeline:
         self.audio_analysis = audio_analysis
         self.video_analysis = video_analysis
         self.temp_path = temp_path
-        self.padding = 1.0 / self.fps  # 1 frame duration padding
 
     def build_timeline_clip(self) -> str:
         segments = self.build_segment_clips()
@@ -50,80 +51,113 @@ class VideoTimeline:
         video_node = self.video_analysis[0]
 
         for segment in self.audio_analysis.beat_segments:
-            logger.info(f"Building segment {segment.index}/{len(self.audio_analysis.beat_segments)}")
+            logger.info(f"Building segment {segment.index+1}/{len(self.audio_analysis.beat_segments)}")
 
             if self.resolution.matches_aspect_ratio(video_node.resolution):
-                scene = random.choice([s for s in video_node.scenes if s.duration >= segment.duration])
-
-                clip = VideoFileClip(video_node.path)
-                subclipped: VideoClip = clip.subclipped(
-                    start_time=scene.start_time,
-                    end_time=scene.start_time + segment.duration + self.padding,
-                )
-
-                segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
-                segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
-                segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
-                segment_clips.append(segment_clip_path)
-
-                segment_clip.close()
-                subclipped.close()
-                clip.close()
+                segment_clips.append(self.get_crop_segment_clip(video_node, segment))
             else:
-                video_node_2 = video_node.find_next(lambda x: not x.resolution.matches_aspect_ratio(self.resolution))
-
-                scene_1 = random.choice(video_node.scenes)
-                scene_2 = random.choice(video_node_2.scenes)
-
-                clip_1 = VideoFileClip(video_node.path)
-                clip_2 = VideoFileClip(video_node_2.path)
-
-                subclipped_1: VideoClip = clip_1.subclipped(
-                    start_time=scene_1.start_time,
-                    end_time=scene_1.start_time + segment.duration + self.padding,
-                )
-                subclipped_2: VideoClip = clip_2.subclipped(
-                    start_time=scene_2.start_time,
-                    end_time=scene_2.start_time + segment.duration + self.padding,
-                )
-
-                position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
-                clip_positions = video_clip_transform.get_positions_from_layout(position_layout)
-
-                segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
-                segment_clip: VideoClip = video_clip_transform.split_screen_clips(
-                    video_width=self.resolution.width,
-                    video_height=self.resolution.height,
-                    clips_criteria=[
-                        video_clip_transform.SplitScreenCriteria(
-                            clip=subclipped_1,
-                            position=clip_positions[0],
-                            scale_factor=0.95,
-                        ),
-                        video_clip_transform.SplitScreenCriteria(
-                            clip=subclipped_2,
-                            scale_factor=1.1,
-                            position=clip_positions[1],
-                        ),
-                        video_clip_transform.SplitScreenCriteria(
-                            clip=subclipped_1.with_effects([vfx.MirrorX()]),
-                            position=clip_positions[2],
-                            scale_factor=0.95,
-                        ),
-                    ],
-                    position_layout=position_layout,
-                    clip_duration=segment.duration,
-                )
-
-                segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
-                segment_clips.append(segment_clip_path)
-
-                segment_clip.close()
-                subclipped_1.close()
-                subclipped_2.close()
-                clip_1.close()
-                clip_2.close()
+                segment_clips.append(self.get_split_screen_segment_clip(video_node, segment))
 
             video_node = video_node.next
 
         return segment_clips
+
+    def get_crop_segment_clip(self, video_node: VideoNode, segment: BeatSegment):
+        scene = self.get_video_Scene(video_node, segment)
+
+        clip = VideoFileClip(video_node.path)
+        subclipped = self.get_sub_clip(segment, scene, clip)
+
+        segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
+        segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
+
+        zoom_factor = 1.3
+        zoom_in_criteria = PanZoomEffectCriteria(
+            start_zoom=1.0, end_zoom=zoom_factor, start_time=0, duration=subclipped.duration / 3.0, easing="ease_out"
+        )
+
+        middle_zoom = PanZoomEffectCriteria(
+            start_zoom=zoom_factor,
+            end_zoom=zoom_factor,
+            start_time=subclipped.duration / 3.0,
+            duration=subclipped.duration / 3.0,
+            easing=None,
+        )
+
+        zoom_out_criteria = PanZoomEffectCriteria(
+            start_zoom=zoom_factor,
+            end_zoom=1.0,
+            start_time=subclipped.duration / 3.0 * 2.0,
+            duration=subclipped.duration / 3.0,
+            easing="ease_in",
+        )
+
+        segment_clip: VideoClip = pan_zoom_frame(segment_clip, zoom_in_criteria)
+        segment_clip: VideoClip = pan_zoom_frame(segment_clip, middle_zoom)
+        segment_clip: VideoClip = pan_zoom_frame(segment_clip, zoom_out_criteria)
+
+        segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+
+        segment_clip.close()
+        subclipped.close()
+        clip.close()
+        return segment_clip_path
+
+    def get_split_screen_segment_clip(self, video_node: VideoNode, segment: BeatSegment):
+        video_node_2 = video_node.find_next(lambda x: x.resolution.matches_aspect_ratio(video_node.resolution))
+
+        scene_1 = self.get_video_Scene(video_node, segment)
+        scene_2 = self.get_video_Scene(video_node_2, segment)
+
+        clip_1 = VideoFileClip(video_node.path)
+        clip_2 = VideoFileClip(video_node_2.path)
+
+        subclipped_1: VideoClip = self.get_sub_clip(segment, scene_1, clip_1)
+        subclipped_2: VideoClip = self.get_sub_clip(segment, scene_2, clip_2)
+
+        position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
+        clip_positions = video_clip_transform.get_positions_from_layout(position_layout)
+
+        segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
+        segment_clip: VideoClip = video_clip_transform.split_screen_clips(
+            video_width=self.resolution.width,
+            video_height=self.resolution.height,
+            clips_criteria=[
+                video_clip_transform.SplitScreenCriteria(
+                    clip=subclipped_1,
+                    position=clip_positions[0],
+                    scale_factor=0.95,
+                ),
+                video_clip_transform.SplitScreenCriteria(
+                    clip=subclipped_2,
+                    scale_factor=1.1,
+                    position=clip_positions[1],
+                ),
+                video_clip_transform.SplitScreenCriteria(
+                    clip=subclipped_1.with_effects([vfx.MirrorX()]),
+                    position=clip_positions[2],
+                    scale_factor=0.95,
+                ),
+            ],
+            position_layout=position_layout,
+            clip_duration=segment.duration,
+        )
+
+        segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+
+        segment_clip.close()
+        subclipped_1.close()
+        subclipped_2.close()
+        clip_1.close()
+        clip_2.close()
+        return segment_clip_path
+
+    def get_video_Scene(self, video_node: VideoNode, segment: BeatSegment) -> SceneInfo:
+        scenes = [s for s in video_node.scenes if s.duration >= segment.duration]
+        return random.choice(scenes)
+
+    def get_sub_clip(self, segment: BeatSegment, scene: SceneInfo, clip: VideoClip) -> VideoClip:
+        requires_frame_drift = segment.duration <= 0.55
+        padding = (1.0 / self.fps) if requires_frame_drift else 0
+
+        return clip.subclipped(start_time=scene.start_time, end_time=scene.start_time + segment.duration + padding)

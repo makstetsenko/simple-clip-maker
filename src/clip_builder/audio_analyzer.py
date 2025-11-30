@@ -3,7 +3,7 @@ import librosa
 from numpy.linalg import norm
 
 
-class IntencityBand:
+class IntensityBand:
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -59,7 +59,7 @@ class BeatSegment:
             index=0,
             start_time=0,
             energy=0,
-            intensity_band=IntencityBand.LOW,
+            intensity_band=IntensityBand.LOW,
             energy_delta=0,
             reverse_candidate=False,
             similar_group=0,
@@ -231,11 +231,11 @@ def analyze_music_for_editing(
 
     def band(e):
         if e < low_thr:
-            return IntencityBand.LOW
+            return IntensityBand.LOW
         elif e < high_thr:
-            return IntencityBand.MEDIUM
+            return IntensityBand.MEDIUM
         else:
-            return IntencityBand.HIGH
+            return IntensityBand.HIGH
 
     intensity_bands = [band(e) for e in energy_norm]
 

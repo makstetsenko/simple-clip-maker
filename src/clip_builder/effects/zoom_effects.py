@@ -1,3 +1,4 @@
+from typing import Literal
 from moviepy import VideoClip, CompositeVideoClip
 import cv2
 import math
@@ -39,30 +40,58 @@ def bump_zoom_on_time_stops(
     return clip.transform(lambda get_frame, t: make_frame(get_frame, t), apply_to=["mask", "audio"])
 
 
+EasingType = Literal["ease_in", "ease_out"]
+
+
 class PanZoomEffectCriteria:
-    def __init__(self, start_zoom: int = 1.0, end_zoom: int = 1.5, pan: tuple[int, int] = (0, 0)):
+    def __init__(
+        self,
+        start_time: float,
+        duration: float,
+        easing: EasingType | None,
+        start_zoom: int = 1.0,
+        end_zoom: int = 1.5,
+        pan: tuple[int, int] = (0, 0),
+    ):
         self.start_zoom = start_zoom
         self.end_zoom = end_zoom
         self.pan = pan
+        self.duration = duration
+        self.start_time = start_time
+        self.easing: EasingType | None = easing
 
 
-def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria = PanZoomEffectCriteria()):
+def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria):
     video_width = clip.w
     video_height = clip.h
+
+    start = criteria.start_time
+    end = criteria.start_time + criteria.duration
 
     def make_frame(get_frame, t):
         frame = get_frame(t)
 
-        progress = math.sqrt(4.0 * t / clip.duration)
+        if t < start or t >= end:
+            return frame
+
+        linear_progress = (t - start) / criteria.duration
+        linear_progress = max(0.0, min(1.0, linear_progress))
+
+        if criteria.easing == "ease_in":
+            eased = 1 - math.cos((linear_progress * math.pi) / 2)
+        elif criteria.easing == "ease_out":
+            eased = math.sin(linear_progress * math.pi / 2)
+        else:
+            eased = linear_progress
 
         # zoom interpolation
-        zoom = criteria.start_zoom + (criteria.end_zoom - criteria.start_zoom) * progress
+        zoom = criteria.start_zoom + (criteria.end_zoom - criteria.start_zoom) * eased
         new_w = int(video_width / zoom)
         new_h = int(video_height / zoom)
 
         # pan interpolation
-        pan_x = int(criteria.pan[0] * progress)
-        pan_y = int(criteria.pan[1] * progress)
+        pan_x = int(criteria.pan[0] * eased)
+        pan_y = int(criteria.pan[1] * eased)
 
         # cropping box relative to center + pan
         x1 = (video_width - new_w) // 2 + pan_x
