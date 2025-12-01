@@ -1,3 +1,4 @@
+from src.clip_builder.PreviewVideoTimeline import PreviewVideoTimeline
 from src.clip_builder.JsonCache import JsonCache
 from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
@@ -32,6 +33,7 @@ class VideoProject:
         fps: int,
         video_files_path_template: str,
         audio_file_path_template: str,
+        preview: bool = False,
     ):
         self.resolution = VideoResolution(resolution)
         self.fps = fps
@@ -49,10 +51,20 @@ class VideoProject:
         for p in video_files_path_template.split(","):
             self.videos_path_list += glob.glob(p)
 
+        self.preview = preview
         self.prepare_dirs()
 
     def create_timeline(self) -> VideoTimeline:
         audio_analysis = self.get_audio_analysis()
+
+        if self.preview:
+            return PreviewVideoTimeline(
+                fps=self.fps,
+                resolution=self.resolution,
+                audio_analysis=audio_analysis,
+                temp_path=self.temp_dir_path,
+            )
+
         video_analysis = self.get_video_analysis()
 
         self.store_analysis_to_temp(audio_analysis, video_analysis)

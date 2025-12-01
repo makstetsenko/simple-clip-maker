@@ -1,0 +1,88 @@
+import json
+from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
+from src.clip_builder.video_analyzer import SceneInfo
+from src.clip_builder import video_clip_transform
+from src.clip_builder.VideoNode import VideoNode
+from src.clip_builder.VideoResolution import VideoResolution
+from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
+
+import src.clip_builder.effect_presets.zoom as zoom_effect_preset
+import src.clip_builder.effect_presets.pan as pan_effect_preset
+
+from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips, ImageClip, TextClip, CompositeVideoClip
+
+
+import random
+import logging
+
+from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
+
+
+class PreviewVideoTimeline:
+
+    def __init__(
+        self,
+        fps: int,
+        resolution: VideoResolution,
+        audio_analysis: AudioAnalyzeResult,
+        temp_path: str,
+    ):
+        self.fps = fps
+        self.resolution = resolution
+        self.audio_analysis = audio_analysis
+        self.temp_path = temp_path
+
+    def build_timeline_clip(self) -> str:
+        segments = self.build_segment_clips()
+        clips = [VideoFileClip(s) for s in segments]
+
+        chained_clip_path = f"{self.temp_path}/preview_chained_clip.mp4"
+        chained_clip = concatenate_videoclips(clips=clips, method="compose")
+        chained_clip.write_videofile(chained_clip_path, audio=None, fps=self.fps)
+
+        for c in clips:
+            c.close()
+
+        chained_clip.close()
+
+        return chained_clip_path
+
+    def build_segment_clips(self):
+        segment_clips = []
+
+        with tqdm(total=len(self.audio_analysis.beat_segments)) as progress_bar:
+            progress_bar.set_description("Building segments")
+            for segment in self.audio_analysis.beat_segments:
+                segment_clips.append(self.get_segment_clip(segment))
+                progress_bar.update(1)
+
+        return segment_clips
+
+    def get_segment_clip(self, segment: BeatSegment):
+        requires_frame_drift = segment.duration <= 0.4
+        padding = (1.0 / self.fps) if requires_frame_drift else 0
+
+        clip_duration = segment.duration + padding
+
+        clip = ImageClip("./static/preview-frame.jpg", duration=clip_duration).with_fps(self.fps)
+        clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, clip)
+        text_clip_overlay = TextClip(
+            text=json.dumps(segment.to_json(), indent=4, sort_keys=False, ensure_ascii=False),
+            text_align="left",
+            font_size=24,
+            size=self.resolution.resolution,
+            duration=clip_duration,
+        ).with_fps(self.fps)
+
+        clip_path = f"{self.temp_path}/preview_{segment.index}.mp4"
+
+        clip: VideoClip = pan_effect_preset.pan_side_to_side(clip, pan=(200, 0), easing=None)
+
+        composed_clip = CompositeVideoClip(clips=[clip, text_clip_overlay], size=self.resolution.resolution)
+        composed_clip.write_videofile(filename=clip_path, audio=None, logger=None, fps=self.fps)
+
+        clip.close()
+        composed_clip.close()
+        return clip_path

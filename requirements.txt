@@ -7,3 +7,4 @@ argparse
 scikit-image
 opencv-python
 black
+tqdm

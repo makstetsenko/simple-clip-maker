@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
 from src.clip_builder import video_clip_transform
@@ -28,7 +29,6 @@ class VideoTimeline:
         video_analysis: list[VideoNode],
         temp_path: str,
     ):
-
         self.fps = fps
         self.resolution = resolution
         self.audio_analysis = audio_analysis
@@ -54,15 +54,18 @@ class VideoTimeline:
         segment_clips = []
         video_node = self.video_analysis[0]
 
-        for segment in self.audio_analysis.beat_segments:
-            logger.info(f"Building segment {segment.index+1}/{len(self.audio_analysis.beat_segments)}")
+        with tqdm(total=len(self.audio_analysis.beat_segments)) as progress_bar:
+            progress_bar.set_description("Building segments")
 
-            if self.resolution.matches_aspect_ratio(video_node.resolution):
-                segment_clips.append(self.get_crop_segment_clip(video_node, segment))
-            else:
-                segment_clips.append(self.get_split_screen_segment_clip(video_node, segment))
+            for segment in self.audio_analysis.beat_segments:
+                if self.resolution.matches_aspect_ratio(video_node.resolution):
+                    segment_clips.append(self.get_crop_segment_clip(video_node, segment))
+                else:
+                    segment_clips.append(self.get_split_screen_segment_clip(video_node, segment))
 
-            video_node = video_node.next
+                video_node = video_node.next
+
+                progress_bar.update(1)
 
         return segment_clips
 
@@ -75,7 +78,7 @@ class VideoTimeline:
         segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
         segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
 
-        segment_clip = pan_effect_preset.pan(segment_clip, pan=(0, 2000), easing=None)
+        segment_clip = pan_effect_preset.pan_side_to_side(segment_clip, pan=(0, 2000), easing=None)
 
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 

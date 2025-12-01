@@ -8,6 +8,7 @@ def build(
     store_timeline_clips: bool,
     video_resolution: tuple[int, int] = (1280, 720),
     fps: int = 25,
+    preview: bool = False,
 ):
 
     project = VideoProject(
@@ -15,10 +16,8 @@ def build(
         fps=fps,
         video_files_path_template=video_files_path_template,
         audio_file_path_template=audio_file_path_template,
+        preview=preview,
     )
-
-    if store_timeline_clips:
-        pass
 
     timeline = project.create_timeline()
     clip_path = timeline.build_timeline_clip()
