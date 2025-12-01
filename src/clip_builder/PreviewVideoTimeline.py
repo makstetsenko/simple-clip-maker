@@ -1,4 +1,5 @@
 import json
+from src.clip_builder.effects.apply_effects import apply_transformations
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
 from src.clip_builder import video_clip_transform
@@ -61,7 +62,7 @@ class PreviewVideoTimeline:
         return segment_clips
 
     def get_segment_clip(self, segment: BeatSegment):
-        requires_frame_drift = segment.duration <= 0.4
+        requires_frame_drift = segment.duration <= 0.5
         padding = (1.0 / self.fps) if requires_frame_drift else 0
 
         clip_duration = segment.duration + padding
@@ -78,7 +79,12 @@ class PreviewVideoTimeline:
 
         clip_path = f"{self.temp_path}/preview_{segment.index}.mp4"
 
-        clip: VideoClip = pan_effect_preset.pan_side_to_side(clip, pan=(200, 0), easing=None)
+        clip: VideoClip = apply_transformations(
+            clip=clip,
+            frame_transformations=zoom_effect_preset.zoom_bump(
+                clip.duration, self.resolution.resolution, zoom_factor=1.1, bump_count=2, reverse=False
+            ) + zoom_effect_preset.zoom_in__zoom_out(clip.duration, self.resolution.resolution, 1.5),
+        )
 
         composed_clip = CompositeVideoClip(clips=[clip, text_clip_overlay], size=self.resolution.resolution)
         composed_clip.write_videofile(filename=clip_path, audio=None, logger=None, fps=self.fps)

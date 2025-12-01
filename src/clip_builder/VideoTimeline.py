@@ -78,7 +78,6 @@ class VideoTimeline:
         segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
         segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
 
-        segment_clip = pan_effect_preset.pan_side_to_side(segment_clip, pan=(0, 2000), easing=None)
 
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 

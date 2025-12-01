@@ -119,7 +119,9 @@ class BeatGrid:
 
 
 class AudioAnalyzeResult:
-    def __init__(self, sample_rate: int, duration: float, tempo: float, grid: BeatGrid, beat_segments: list[BeatSegment]):
+    def __init__(
+        self, sample_rate: int, duration: float, tempo: float, grid: BeatGrid, beat_segments: list[BeatSegment]
+    ):
         self.sample_rate = sample_rate
         self.duration = duration
         self.tempo = tempo
@@ -260,7 +262,9 @@ def analyze_music_for_editing(
     reverse_candidates = []
     for i in range(1, n_beats - 1):
         # big local bump or dip
-        if (energy_delta[i - 1] > 0.2 and energy_delta[i] < -0.2) or (energy_delta[i - 1] < -0.2 and energy_delta[i] > 0.2):
+        if (energy_delta[i - 1] > 0.2 and energy_delta[i] < -0.2) or (
+            energy_delta[i - 1] < -0.2 and energy_delta[i] > 0.2
+        ):
             reverse_candidates.append(True)
         else:
             reverse_candidates.append(False)

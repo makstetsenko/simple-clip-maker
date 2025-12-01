@@ -33,7 +33,9 @@ def get_args():
         help="Save clips that were built for project timeline to output dir",
     )
 
-    parser.add_argument("--preview", "-p", action="store_true", required=False, help="Show video preview to see how effects works")
+    parser.add_argument(
+        "--preview", "-p", action="store_true", required=False, help="Show video preview to see how effects works"
+    )
 
     return parser.parse_args()
 

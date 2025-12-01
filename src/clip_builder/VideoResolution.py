@@ -11,4 +11,6 @@ class VideoResolution:
         self.is_near_square = abs(self.aspect_ration - 1) <= 0.02
 
     def matches_aspect_ratio(self, resolution: Self):
-        return (resolution.aspect_ration >= 1 and self.aspect_ration >= 1) or (resolution.aspect_ration < 1 and self.aspect_ration < 1)
+        return (resolution.aspect_ration >= 1 and self.aspect_ration >= 1) or (
+            resolution.aspect_ration < 1 and self.aspect_ration < 1
+        )

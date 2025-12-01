@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Callable, Literal
 from moviepy import VideoClip, CompositeVideoClip
 import cv2
 import math
@@ -26,9 +26,9 @@ class PanZoomEffectCriteria:
         self.easing: EasingType | None = easing
 
 
-def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria):
-    video_width = clip.w
-    video_height = clip.h
+def pan_zoom_frame(video_resolution: tuple[int, int], criteria: PanZoomEffectCriteria) -> Callable:
+    video_width = video_resolution[0]
+    video_height = video_resolution[1]
 
     start = criteria.start_time
     end = criteria.start_time + criteria.duration
@@ -73,4 +73,4 @@ def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria):
         frame = cv2.resize(cropped, (video_width, video_height))
         return frame
 
-    return clip.transform(make_frame, apply_to=["mask", "audio"])
+    return make_frame
