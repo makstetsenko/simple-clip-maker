@@ -2,10 +2,12 @@ import json
 from src.clip_builder.effects.apply_effects import apply_transformations
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
-from src.clip_builder import video_clip_transform
 from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
 from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
+
+from src.clip_builder.effects.crop import fit_video_into_frame_size
+from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
 
 import src.clip_builder.effect_presets.zoom as zoom_effect_preset
 import src.clip_builder.effect_presets.pan as pan_effect_preset
@@ -68,12 +70,12 @@ class PreviewVideoTimeline:
         clip_duration = segment.duration + padding
 
         clip = ImageClip("./static/preview-frame.jpg", duration=clip_duration).with_fps(self.fps)
-        clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, clip)
+        clip = fit_video_into_frame_size(self.resolution.size, clip)
         text_clip_overlay = TextClip(
             text=json.dumps(segment.to_json(), indent=4, sort_keys=False, ensure_ascii=False),
             text_align="left",
             font_size=24,
-            size=self.resolution.resolution,
+            size=self.resolution.size,
             duration=clip_duration,
         ).with_fps(self.fps)
 
@@ -82,11 +84,12 @@ class PreviewVideoTimeline:
         clip: VideoClip = apply_transformations(
             clip=clip,
             frame_transformations=zoom_effect_preset.zoom_bump(
-                clip.duration, self.resolution.resolution, zoom_factor=1.1, bump_count=2, reverse=False
-            ) + zoom_effect_preset.zoom_in__zoom_out(clip.duration, self.resolution.resolution, 1.5),
+                clip.duration, self.resolution.size, zoom_factor=1.1, bump_count=2, reverse=False
+            )
+            + zoom_effect_preset.zoom_in__zoom_out(clip.duration, self.resolution.size, 1.5),
         )
 
-        composed_clip = CompositeVideoClip(clips=[clip, text_clip_overlay], size=self.resolution.resolution)
+        composed_clip = CompositeVideoClip(clips=[clip, text_clip_overlay], size=self.resolution.size)
         composed_clip.write_videofile(filename=clip_path, audio=None, logger=None, fps=self.fps)
 
         clip.close()

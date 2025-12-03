@@ -4,23 +4,6 @@ import random
 color_presets = [(255, 255, 255), (255, 133, 255), (113, 233, 255)]
 
 
-def crop_video(video_width, video_height, clip: VideoClip):
-    clip_aspect = clip.w / clip.h
-    aspect_ratio = video_width / video_height
-
-    if clip_aspect < aspect_ratio:
-        scaled_clip: VideoClip = clip.resized(width=video_width)
-    else:
-        scaled_clip: VideoClip = clip.resized(height=video_height)
-
-    return scaled_clip.cropped(
-        x_center=scaled_clip.w / 2,
-        y_center=scaled_clip.h / 2,
-        width=video_width,
-        height=video_height,
-    )
-
-
 def set_clip_position(
     video_width,
     video_height,
@@ -59,18 +42,6 @@ def set_clip_position(
     return cropped_clip.with_position((clip_x, clip_y))
 
 
-class SplitScreenCriteria:
-    def __init__(
-        self,
-        clip: VideoClip,
-        position: tuple[int, int] | None = None,
-        scale_factor: float = 1,
-    ):
-        self.clip = clip
-        self.position = position
-        self.scale_factor = scale_factor
-
-
 def get_positions_from_layout(position_layout: tuple[int, int]):
     cols, rows = position_layout
 
@@ -81,6 +52,18 @@ def get_positions_from_layout(position_layout: tuple[int, int]):
             positions.append((c, r))
 
     return positions
+
+
+class SplitScreenCriteria:
+    def __init__(
+        self,
+        clip: VideoClip,
+        position: tuple[int, int] | None = None,
+        scale_factor: float = 1,
+    ):
+        self.clip = clip
+        self.position = position
+        self.scale_factor = scale_factor
 
 
 def split_screen_clips(

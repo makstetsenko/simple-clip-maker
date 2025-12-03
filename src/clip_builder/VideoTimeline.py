@@ -1,7 +1,8 @@
 from tqdm import tqdm
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
-from src.clip_builder import video_clip_transform
+from src.clip_builder.effects.crop import fit_video_into_frame_size
+from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
 from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
 from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
@@ -76,8 +77,7 @@ class VideoTimeline:
         subclipped = self.get_sub_clip(segment, scene, clip)
 
         segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
-        segment_clip = video_clip_transform.crop_video(self.resolution.width, self.resolution.height, subclipped)
-
+        segment_clip = fit_video_into_frame_size(self.resolution.size, subclipped)
 
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
@@ -99,24 +99,24 @@ class VideoTimeline:
         subclipped_2: VideoClip = self.get_sub_clip(segment, scene_2, clip_2)
 
         position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
-        clip_positions = video_clip_transform.get_positions_from_layout(position_layout)
+        clip_positions = get_positions_from_layout(position_layout)
 
         segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
-        segment_clip: VideoClip = video_clip_transform.split_screen_clips(
+        segment_clip: VideoClip = split_screen_clips(
             video_width=self.resolution.width,
             video_height=self.resolution.height,
             clips_criteria=[
-                video_clip_transform.SplitScreenCriteria(
+                SplitScreenCriteria(
                     clip=subclipped_1,
                     position=clip_positions[0],
                     scale_factor=0.95,
                 ),
-                video_clip_transform.SplitScreenCriteria(
+                SplitScreenCriteria(
                     clip=subclipped_2,
                     scale_factor=1.1,
                     position=clip_positions[1],
                 ),
-                video_clip_transform.SplitScreenCriteria(
+                SplitScreenCriteria(
                     clip=subclipped_1.with_effects([vfx.MirrorX()]),
                     position=clip_positions[2],
                     scale_factor=0.95,

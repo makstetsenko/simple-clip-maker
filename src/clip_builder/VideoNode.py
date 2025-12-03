@@ -26,7 +26,7 @@ class VideoNode:
     def to_json(self):
         return {
             "path": self.path,
-            "resolution": self.resolution.resolution,
+            "resolution": self.resolution.size,
             "fps": self.fps,
             "scenes": [s.to_json() for s in self.scenes],
         }
