@@ -10,6 +10,10 @@ from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, Int
 import src.clip_builder.effect_presets.zoom as zoom_effect_preset
 import src.clip_builder.effect_presets.pan as pan_effect_preset
 
+
+from src.clip_builder.effects.playback import forward_reverse, ramp_speed, ramp_speed_segments
+
+
 from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips
 
 
@@ -79,6 +83,14 @@ class VideoTimeline:
         segment_clip_path = f"{self.temp_path}/{segment.index}.mp4"
         segment_clip = fit_video_into_frame_size(self.resolution.size, subclipped)
 
+        # segment_clip = forward_reverse(segment_clip)
+
+        # segment_clip = ramp_speed_with_original_duration(segment_clip, start_speed=1.0, end_speed=0.0, ramps=20).with_duration(segment.duration)
+
+        # segment_clip = ramp_speed_segments(segment_clip, speeds=[0.1, 1.5, 1.5, 0.1], scale_speed_to_original_duration=True)
+
+        segment_clip = ramp_speed_segments(segment_clip, speeds=[1.5, 0.1, 1.5], scale_speed_to_original_duration=True)
+
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
         segment_clip.close()
@@ -145,4 +157,6 @@ class VideoTimeline:
         requires_frame_drift = segment.duration <= 0.55
         padding = (1.0 / self.fps) if requires_frame_drift else 0
 
-        return clip.subclipped(start_time=scene.start_time, end_time=scene.start_time + segment.duration + padding)
+        start_time = random.random() * (scene.duration - segment.duration - 0.1)
+
+        return clip.subclipped(start_time=start_time, end_time=start_time + segment.duration + padding)

@@ -29,17 +29,17 @@ def crop(clip: VideoClip, top_left_point: tuple[int, int], size: tuple[int, int]
     )
 
 
-def line_crop(clip: VideoClip, line_number: int, total_lines: int, is_vertical_line: bool):
+def line_crop(clip: VideoClip, line_number: int, total_lines: int, is_vertical_line: bool) -> VideoClip:
 
     if is_vertical_line:
         offset = clip.w / total_lines * (line_number - 1)
         crop_w = clip.w / total_lines
         crop_h = clip.w
 
-        return crop(clip, top_left_point=(offset, 0), size=(crop_w, crop_h))
+        return crop(clip, top_left_point=(offset, 0), size=(crop_w, crop_h)).with_position((offset, 0))
 
     offset = clip.h / total_lines * (line_number - 1)
     crop_w = clip.w
     crop_h = clip.h / total_lines
 
-    return crop(clip, top_left_point=(0, offset), size=(crop_w, crop_h))
+    return crop(clip, top_left_point=(0, offset), size=(crop_w, crop_h)).with_position((0, offset))

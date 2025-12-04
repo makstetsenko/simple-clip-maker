@@ -1,16 +1,20 @@
 import json
-from src.clip_builder.effects.apply_effects import apply_transformations
+from src.clip_builder.effects.apply_effects import apply_transformations, apply_composition
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
 from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
 from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
 
-from src.clip_builder.effects.crop import fit_video_into_frame_size
+from src.clip_builder.effects.crop import fit_video_into_frame_size, line_crop
+from src.clip_builder.effects.flash import get_flash_clips
 from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
+from src.clip_builder.effects.playback import forward_reverse
 
 import src.clip_builder.effect_presets.zoom as zoom_effect_preset
 import src.clip_builder.effect_presets.pan as pan_effect_preset
+import src.clip_builder.effect_presets.crop as crop_effect_preset
+import src.clip_builder.effect_presets.flash as flash_effect_preset
 
 from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips, ImageClip, TextClip, CompositeVideoClip
 
@@ -81,13 +85,39 @@ class PreviewVideoTimeline:
 
         clip_path = f"{self.temp_path}/preview_{segment.index}.mp4"
 
+        # if segment.reverse_candidate:
+        #     frame_transformations = zoom_effect_preset.zoom_out__zoom_in(clip.duration, self.resolution.size, 1.1)
+        # else:
+        #     frame_transformations = zoom_effect_preset.zoom_in__zoom_out(clip.duration, self.resolution.size, 1.1)
+
+        frame_transformations = zoom_effect_preset.zoom_in_at_clip_starts(
+            clip_duration=clip.duration, clip_size=self.resolution.size, zoom_duration=clip.duration, zoom_factor=1.5
+        )
+
         clip: VideoClip = apply_transformations(
             clip=clip,
-            frame_transformations=zoom_effect_preset.zoom_bump(
-                clip.duration, self.resolution.size, zoom_factor=1.1, bump_count=2, reverse=False
-            )
-            + zoom_effect_preset.zoom_in__zoom_out(clip.duration, self.resolution.size, 1.5),
+            frame_transformations=frame_transformations,
         )
+
+        # clip = apply_composition(clip, overlay_clips=get_flash_clips(self.resolution.size, [0], 0.15))
+
+        # clip = line_crop(clip, segment.index % 5 + 1, 5,is_vertical_line=True)
+
+        # clip = crop_effect_preset.line_crop(clip, segment.index % 5 + 1, 5,is_vertical=True)
+
+        # clip = crop_effect_preset.burst_line_crop(clip, 3,is_vertical=True, reverse_ordering=True)
+
+        # clip = crop_effect_preset.burst_line_crop(clip, 10,is_vertical=False)
+
+        # clip = flash_effect_preset.burst_flash(clip, 4)
+
+        # clip = flash_effect_preset.burst_flash(clip, 4, color=(234, 55, 151))
+
+        # clip = flash_effect_preset.burst_flash(clip, 4, pick_random_flash_color=True)
+
+        # clip = flash_effect_preset.flash_at_clip_start(clip, flash_duration=0.15, pick_random_flash_color=True)
+
+        clip = forward_reverse(clip)
 
         composed_clip = CompositeVideoClip(clips=[clip, text_clip_overlay], size=self.resolution.size)
         composed_clip.write_videofile(filename=clip_path, audio=None, logger=None, fps=self.fps)

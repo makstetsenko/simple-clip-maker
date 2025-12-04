@@ -10,4 +10,4 @@ def apply_transformations(clip: VideoClip, frame_transformations: list[Callable]
 
 
 def apply_composition(clip: VideoClip, overlay_clips: list[VideoClip]) -> VideoClip:
-    return CompositeVideoClip([clip] + overlay_clips)
+    return CompositeVideoClip([clip] + overlay_clips, size=clip.size)
