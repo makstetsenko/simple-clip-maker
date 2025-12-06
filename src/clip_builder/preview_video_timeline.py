@@ -2,8 +2,8 @@ import json
 from src.clip_builder.effects.apply_effects import apply_transformations, apply_composition
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
-from src.clip_builder.VideoNode import VideoNode
-from src.clip_builder.VideoResolution import VideoResolution
+from src.clip_builder.video_node import VideoNode
+from src.clip_builder.video_resolution import VideoResolution
 from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
 
 from src.clip_builder.effects.crop import fit_video_into_frame_size, line_crop

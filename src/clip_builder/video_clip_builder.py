@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from tqdm import tqdm
-from src.clip_builder.TimelineConfig import TimelineConfig
-from src.clip_builder.VideoProject import TimelineSegmentConfig
+from src.clip_builder.timeline_config import TimelineConfig
+from src.clip_builder.video_project import TimelineSegmentConfig
 from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
 from src.clip_builder.video_analyzer import SceneInfo
 from src.clip_builder.effects.crop import fit_video_into_frame_size
 from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
-from src.clip_builder.VideoNode import VideoNode
-from src.clip_builder.VideoResolution import VideoResolution
+from src.clip_builder.video_node import VideoNode
+from src.clip_builder.video_resolution import VideoResolution
 from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
 
 import src.clip_builder.effect_presets.zoom as zoom_effect_preset

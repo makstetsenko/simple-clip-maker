@@ -1,5 +1,5 @@
 from moviepy import *
-from src.clip_builder.VideoProject import VideoProject
+from src.clip_builder.video_project import VideoProject
 
 
 def build(

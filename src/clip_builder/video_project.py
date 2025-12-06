@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 import random
 from typing import Self
-from src.clip_builder.TimelineConfig import TimelineConfig, TimelineSegmentConfig, VideoItem
+from src.clip_builder.timeline_config import TimelineConfig, TimelineSegmentConfig, VideoItem
 from src.clip_builder.effects.crop import fit_video_into_frame_size
 from src.clip_builder.effects.split_screen import SplitScreenCriteria, get_positions_from_layout, split_screen_clips
-from src.clip_builder.PreviewVideoTimeline import PreviewVideoTimeline
-from src.clip_builder.JsonCache import JsonCache
-from src.clip_builder.VideoNode import VideoNode
-from src.clip_builder.VideoResolution import VideoResolution
-from src.clip_builder.VideoClipBuilder import VideoClipBuilder
+from src.clip_builder.preview_video_timeline import PreviewVideoTimeline
+from src.clip_builder.json_cache import JsonCache
+from src.clip_builder.video_node import VideoNode
+from src.clip_builder.video_resolution import VideoResolution
+from src.clip_builder.video_clip_builder import VideoClipBuilder
 
 from moviepy import VideoClip, VideoFileClip, vfx
 from src.clip_builder.audio_analyzer import (

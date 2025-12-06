@@ -1,5 +1,5 @@
 from typing import Callable, Self
-from src.clip_builder.VideoResolution import VideoResolution
+from src.clip_builder.video_resolution import VideoResolution
 from src.clip_builder.video_analyzer import SceneInfo
 
 
