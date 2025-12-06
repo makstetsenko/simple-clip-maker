@@ -8,8 +8,8 @@ def build(
     video_resolution: tuple[int, int] = (1280, 720),
     fps: int = 25,
     preview: bool = False,
+    timeline_config_path: str | None = None,
 ):
-
     project = VideoProject(
         resolution=video_resolution,
         fps=fps,
@@ -21,7 +21,11 @@ def build(
     clip_builder = project.get_clip_builder()
 
     # Use config as separate object to be able to load it from external file
-    timeline_config = project.get_default_timeline_config()
+    timeline_config = (
+        project.get_default_timeline_config()
+        if timeline_config_path is None
+        else project.load_timeline_config(timeline_config_path)
+    )
 
     project.store_timeline_config(timeline_config)
 

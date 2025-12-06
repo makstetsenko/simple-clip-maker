@@ -188,6 +188,11 @@ class VideoProject:
             segments=timeline_segments,
         )
 
+    def load_timeline_config(self, config_path):
+        logger.info(f"Load timeline config {config_path}")
+        with open(config_path, "r") as f:
+            return TimelineConfig.from_dict(value=yaml.safe_load(f))
+
     @staticmethod
     def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
         scene = random.choice(video_node.scenes)

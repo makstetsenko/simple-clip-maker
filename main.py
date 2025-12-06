@@ -1,8 +1,10 @@
+import glob
+
 import argparse
 from src.clip_builder import build_clip
 import logging
 
-movie_formats = ["m4v", "mov", "mp4", "M4V", "MOV", "MP4"]
+movie_formats = ["m4v", "mov", "mp4"]
 
 
 def get_args():
@@ -39,6 +41,16 @@ def get_args():
     return parser.parse_args()
 
 
+def get_first_path(args, file_ext: list[str]) -> str | None:
+    timeline_config_path_templates = [args.input_dir_path.rstrip("/") + "/*." + x for x in file_ext]
+
+    for t in timeline_config_path_templates:
+        for g in glob.glob(t):
+            return g
+
+    return None
+
+
 def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(message)s",
@@ -47,19 +59,23 @@ def main():
     )
 
     args = get_args()
-    music_path_template = args.input_dir_path.rstrip("/") + "/*.mp3"
+
+    music_path_template = get_first_path(args, file_ext=["mp3", "m4a"])
 
     video_resolution_items = args.video_resolution.split("x")
     build_clip(
         audio_file_path_template=music_path_template,
         store_timeline_clips=args.save_timeline_clips,
-        video_files_path_template=",".join([args.input_dir_path.rstrip("/") + "/*." + x for x in movie_formats]),
+        video_files_path_template=",".join(
+            [args.input_dir_path.rstrip("/") + "/*." + x for x in movie_formats + [f.upper() for f in movie_formats]]
+        ),
         video_resolution=(
             int(video_resolution_items[0]),
             int(video_resolution_items[1]),
         ),
         fps=int(args.fps),
         preview=args.preview,
+        timeline_config_path=get_first_path(args, file_ext=["yaml", "yml"]),
     )
 
 
