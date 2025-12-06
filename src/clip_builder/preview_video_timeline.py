@@ -1,28 +1,13 @@
 import json
-from src.clip_builder.effects.apply_effects import apply_transformations, apply_composition
-from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
-from src.clip_builder.video_analyzer import SceneInfo
-from src.clip_builder.video_node import VideoNode
-from src.clip_builder.video_resolution import VideoResolution
-from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
-
-from src.clip_builder.effects.crop import fit_video_into_frame_size, line_crop
-from src.clip_builder.effects.flash import get_flash_clips
-from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
-from src.clip_builder.effects.playback import forward_reverse
-
-import src.clip_builder.effect_presets.zoom as zoom_effect_preset
-import src.clip_builder.effect_presets.pan as pan_effect_preset
-import src.clip_builder.effect_presets.crop as crop_effect_preset
-import src.clip_builder.effect_presets.flash as flash_effect_preset
-
-from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips, ImageClip, TextClip, CompositeVideoClip
-
-
-import random
 import logging
 
+from moviepy import VideoFileClip, concatenate_videoclips, ImageClip, TextClip, CompositeVideoClip
 from tqdm import tqdm
+
+from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment
+from src.clip_builder.effects.crop import fit_video_into_frame_size
+from src.clip_builder.effects.playback import forward_reverse
+from src.clip_builder.video_resolution import VideoResolution
 
 logger = logging.getLogger(__name__)
 
@@ -90,14 +75,14 @@ class PreviewVideoTimeline:
         # else:
         #     frame_transformations = zoom_effect_preset.zoom_in__zoom_out(clip.duration, self.resolution.size, 1.1)
 
-        frame_transformations = zoom_effect_preset.zoom_in_at_clip_starts(
-            clip_duration=clip.duration, clip_size=self.resolution.size, zoom_duration=clip.duration, zoom_factor=1.5
-        )
+        # frame_transformations = zoom_effect_preset.zoom_in_at_clip_starts(
+        #     clip_duration=clip.duration, clip_size=self.resolution.size, zoom_duration=clip.duration, zoom_factor=1.5
+        # )
 
-        clip: VideoClip = apply_transformations(
-            clip=clip,
-            frame_transformations=frame_transformations,
-        )
+        # clip: VideoClip = apply_transformations(
+        #     clip=clip,
+        #     frame_transformations=frame_transformations,
+        # )
 
         # clip = apply_composition(clip, overlay_clips=get_flash_clips(self.resolution.size, [0], 0.15))
 
