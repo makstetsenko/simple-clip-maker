@@ -1,13 +1,18 @@
+from dataclasses import dataclass
+import random
+from typing import Self
+from src.clip_builder.TimelineConfig import TimelineConfig, TimelineSegmentConfig, VideoItem
+from src.clip_builder.effects.crop import fit_video_into_frame_size
+from src.clip_builder.effects.split_screen import SplitScreenCriteria, get_positions_from_layout, split_screen_clips
 from src.clip_builder.PreviewVideoTimeline import PreviewVideoTimeline
 from src.clip_builder.JsonCache import JsonCache
 from src.clip_builder.VideoNode import VideoNode
 from src.clip_builder.VideoResolution import VideoResolution
-from src.clip_builder.VideoTimeline import VideoTimeline
+from src.clip_builder.VideoClipBuilder import VideoClipBuilder
 
-from moviepy import (
-    VideoFileClip,
-)
+from moviepy import VideoClip, VideoFileClip, vfx
 from src.clip_builder.audio_analyzer import (
+    BeatSegment,
     analyze_music_for_editing,
     AudioAnalyzeResult,
 )
@@ -22,6 +27,7 @@ import os
 import logging
 import json
 import shutil
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -54,26 +60,10 @@ class VideoProject:
         self.preview = preview
         self.prepare_dirs()
 
-    def create_timeline(self) -> VideoTimeline:
-        audio_analysis = self.get_audio_analysis()
-
-        if self.preview:
-            return PreviewVideoTimeline(
-                fps=self.fps,
-                resolution=self.resolution,
-                audio_analysis=audio_analysis,
-                temp_path=self.temp_dir_path,
-            )
-
-        video_analysis = self.get_video_analysis()
-
-        self.store_analysis_to_temp(audio_analysis, video_analysis)
-
-        return VideoTimeline(
+    def get_clip_builder(self) -> VideoClipBuilder:
+        return VideoClipBuilder(
             fps=self.fps,
             resolution=self.resolution,
-            audio_analysis=audio_analysis,
-            video_analysis=video_analysis,
             temp_path=self.temp_dir_path,
         )
 
@@ -134,6 +124,55 @@ class VideoProject:
 
         return res
 
+    def get_default_timeline_config(self) -> TimelineConfig:
+        audio_analysis = self.get_audio_analysis()
+        video_analysis = self.get_video_analysis()
+
+        self.store_analysis_to_temp(audio_analysis, video_analysis)
+
+        video_node = video_analysis[0]
+
+        timeline_segments = []
+        for beat_segment in audio_analysis.beat_segments:
+
+            if video_node.resolution.matches_aspect_ratio(self.resolution):
+                start_time = self.get_video_start_time(video_node, beat_segment)
+
+                timeline_segments.append(
+                    TimelineSegmentConfig(
+                        index=beat_segment.index,
+                        is_split_screen=False,
+                        videos=[VideoItem(path=video_node.path, start_time=start_time)],
+                        effects=[],
+                        duration=beat_segment.duration,
+                    )
+                )
+            else:
+                video_node_2 = video_node.find_next(lambda v: v.resolution.matches_aspect_ratio(video_node.resolution))
+                start_time_2 = self.get_video_start_time(video_node_2, beat_segment)
+
+                timeline_segments.append(
+                    TimelineSegmentConfig(
+                        index=beat_segment.index,
+                        is_split_screen=True,
+                        videos=[
+                            VideoItem(path=video_node.path, start_time=start_time),
+                            VideoItem(path=video_node_2.path, start_time=start_time_2),
+                        ],
+                        effects=[],
+                        duration=beat_segment.duration,
+                    )
+                )
+
+            video_node = video_node.next
+
+        return TimelineConfig(effects=[], segments=timeline_segments)
+
+    def get_video_start_time(self, video_node: VideoNode, beat_segment: BeatSegment):
+        scene = random.choice(video_node.scenes)
+        start_time = random.random() * (scene.duration - beat_segment.duration - 0.1)
+        return start_time
+
     def get_file_name(self, path: str):
         return path.split("/")[-1]
 
@@ -150,6 +189,10 @@ class VideoProject:
 
         with open(f"{self.temp_analysis_dir_path}/audio_{self.get_file_name(self.audio_path)}.json", "w") as f:
             f.write(json.dumps(audio_analysis.to_json(), indent=4, sort_keys=False))
+
+    def store_timeline_config(self, config: TimelineConfig):
+        with open(f"{self.project_dir_path}/timeline_config.yaml", "w") as f:
+            f.write(yaml.dump(config.to_dict(), sort_keys=False, indent=2))
 
     def get_cache_key_from_path(self, path: str):
         return path.replace("/", "_").replace(" ", "_").replace(".", "_")

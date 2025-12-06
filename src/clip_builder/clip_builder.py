@@ -19,6 +19,13 @@ def build(
         preview=preview,
     )
 
-    timeline = project.create_timeline()
-    clip_path = timeline.build_timeline_clip()
+    clip_builder = project.get_clip_builder()
+
+    # Use config as separate object to be able to load it from external file
+    timeline_config = project.get_default_timeline_config()
+
+    project.store_timeline_config(timeline_config)
+
+    clip_path = clip_builder.build_clip(timeline_config)
+
     project.save_clip_with_audio(clip_path=clip_path)
