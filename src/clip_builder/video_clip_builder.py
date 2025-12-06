@@ -1,28 +1,18 @@
+import logging
 from dataclasses import dataclass
-from tqdm import tqdm
-from src.clip_builder.timeline_config import TimelineConfig
-from src.clip_builder.video_project import TimelineSegmentConfig
-from src.clip_builder.effects.zoom_effects import PanZoomEffectCriteria, pan_zoom_frame
-from src.clip_builder.video_analyzer import SceneInfo
-from src.clip_builder.effects.crop import fit_video_into_frame_size
-from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
-from src.clip_builder.video_node import VideoNode
-from src.clip_builder.video_resolution import VideoResolution
-from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment, IntensityBand
-
-import src.clip_builder.effect_presets.zoom as zoom_effect_preset
-import src.clip_builder.effect_presets.pan as pan_effect_preset
-
-
-from src.clip_builder.effects.playback import forward_reverse, ramp_speed, ramp_speed_segments
-
 
 from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips
+from tqdm import tqdm
 
-
-import random
-import logging
-
+import src.clip_builder.effect_presets.crop as crop_effect_preset
+import src.clip_builder.effect_presets.flash as flash_effect_preset
+import src.clip_builder.effect_presets.pan as pan_effect_preset
+import src.clip_builder.effect_presets.zoom as zoom_effect_preset
+import src.clip_builder.effects.crop as crop_effects
+from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
+from src.clip_builder.timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
+from src.clip_builder.video_project import TimelineSegmentConfig
+from src.clip_builder.video_resolution import VideoResolution
 
 logger = logging.getLogger(__name__)
 
@@ -56,20 +46,23 @@ class VideoClipBuilder:
 
             for segment in config.segments:
                 if segment.is_split_screen:
-                    segment_clips.append(self.write_spit_screen_clip(self.temp_path, segment))
+                    segment_clips.append(self.write_spit_screen_clip(self.temp_path, segment, config.effects))
                 else:
-                    segment_clips.append(self.write_single_panel_clip(self.temp_path, segment))
+                    segment_clips.append(self.write_single_panel_clip(self.temp_path, segment, config.effects))
 
                 progress_bar.update(1)
 
         return segment_clips
 
-    def write_single_panel_clip(self, path: str, segment_config: TimelineSegmentConfig) -> str:
+    def write_single_panel_clip(
+        self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
+    ) -> str:
         video = segment_config.videos[0]
 
         merged_clip: VideoClip = VideoFileClip(video.path)
         subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration)
-        segment_clip = fit_video_into_frame_size(self.resolution.size, subclip)
+
+        segment_clip = self.apply_effects(subclip, global_effects + segment_config.effects)
 
         segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
         segment_clip.write_videofile(segment_clip_path, audio=None, logger=None, fps=self.fps)
@@ -80,9 +73,11 @@ class VideoClipBuilder:
 
         return segment_clip_path
 
-    def write_spit_screen_clip(self, path: str, segment_config: TimelineSegmentConfig) -> str:
+    def write_spit_screen_clip(
+        self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
+    ) -> str:
 
-        if segment_config.videos == None or len(segment_config.videos) == 0:
+        if segment_config.videos is None or len(segment_config.videos) == 0:
             raise Exception("Videos list is empty or null")
 
         segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
@@ -118,6 +113,8 @@ class VideoClipBuilder:
                 position_layout=position_layout,
                 clip_duration=segment_config.duration,
             )
+
+            segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
 
             segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
@@ -163,6 +160,7 @@ class VideoClipBuilder:
                 clip_duration=segment_config.duration,
             )
 
+            segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
             segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
             subclipped_1.close()
@@ -196,6 +194,7 @@ class VideoClipBuilder:
             clip_duration=segment_config.duration,
         )
 
+        segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
         for c in subclips + clips:
@@ -209,3 +208,94 @@ class VideoClipBuilder:
 
     def get_subclip(self, clip: VideoClip, start_time: float, duration: float) -> VideoClip:
         return clip[start_time : start_time + duration + self.get_clip_padding(duration)].with_duration(duration)
+
+    @staticmethod
+    def apply_effects(segment_clip: VideoClip, effects: list[VideoSegmentEffect]):
+        for e in effects:
+
+            if e.effect_type == EffectType.ZOOM:
+
+                if e.method == EffectMethod.ZOOM_IN__ZOOM_OUT:
+                    zoom_factor = float(e.args[0])
+                    segment_clip = zoom_effect_preset.zoom_in__zoom_out(segment_clip, zoom_factor)
+
+                if e.method == EffectMethod.ZOOM_OUT__ZOOM_IN:
+                    zoom_factor = float(e.args[0])
+                    segment_clip = zoom_effect_preset.zoom_out__zoom_in(segment_clip, zoom_factor)
+
+                if e.method == EffectMethod.ZOOM_IN_AT_CLIP_STARTS:
+                    zoom_factor = float(e.args[0])
+                    zoom_duration = float(e.args[1])
+                    easing = e.args[2] if str(len(e.args)) == 3 else "ease_out"
+                    segment_clip = zoom_effect_preset.zoom_in_at_clip_starts(
+                        segment_clip, zoom_factor, zoom_duration, easing
+                    )
+
+                if e.method == EffectMethod.ZOOM_IN_AT_CLIP_ENDS:
+                    zoom_factor = float(e.args[0])
+                    zoom_duration = float(e.args[1])
+                    easing = e.args[2] if str(len(e.args)) == 3 else "ease_out"
+                    segment_clip = zoom_effect_preset.zoom_in_at_clip_ends(
+                        segment_clip, zoom_factor, zoom_duration, easing
+                    )
+
+                if e.method == EffectMethod.ZOOM_BUMP:
+                    segment_clip = zoom_effect_preset.zoom_bump(
+                        clip=segment_clip,
+                        zoom_factor=float(e.args[0]),
+                        bump_count=int(e.args[1]),
+                        reverse=bool(e.args[2]),
+                    )
+
+            if e.effect_type == EffectType.PAN:
+
+                if e.method == EffectMethod.PAN_SIDE_TO_SIDE:
+                    segment_clip = pan_effect_preset.pan_side_to_side(
+                        clip=segment_clip,
+                        pan=(int(e.args[0][0]), int(e.args[0][1])),
+                        easing=e.args[1] if str(len(e.args)) == 2 else "ease_out",
+                    )
+
+            if e.effect_type == EffectType.FLASH:
+
+                if e.method == EffectMethod.FLASH:
+                    segment_clip = flash_effect_preset.flash(
+                        clip=segment_clip,
+                        time=float(e.args[0]),
+                        flash_duration=float(e.args[1]),
+                        color=(int(e.args[2][0]), int(e.args[2][1]), int(e.args[2][2])),
+                        pick_random_flash_color=bool(e.args[3]),
+                    )
+
+                if e.method == EffectMethod.BURST_FLASH:
+                    segment_clip = flash_effect_preset.burst_flash(
+                        clip=segment_clip,
+                        flashes_count=int(e.args[0]),
+                        color=(int(e.args[1][0]), int(e.args[1][1]), int(e.args[1][2])),
+                        pick_random_flash_color=bool(e.args[2]),
+                    )
+
+            if e.effect_type == EffectType.CROP:
+
+                if e.method == EffectMethod.LINE_CROP:
+                    segment_clip = crop_effect_preset.line_crop(
+                        clip=segment_clip,
+                        line_number=int(e.args[0]),
+                        total_lines=int(e.args[1]),
+                        is_vertical=bool(e.args[2]),
+                    )
+
+                if e.method == EffectMethod.BURST_LINE_CROP:
+                    segment_clip = crop_effect_preset.burst_line_crop(
+                        clip=segment_clip,
+                        total_lines=int(e.args[0]),
+                        is_vertical=bool(e.args[1]),
+                        reverse_ordering=bool(e.args[2]),
+                    )
+
+                if e.method == EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE:
+                    segment_clip = crop_effects.fit_video_into_frame_size(
+                        clip=segment_clip, size=(int(e.args[0]), int(e.args[1]))
+                    )
+
+        return segment_clip

@@ -12,8 +12,8 @@ class PanZoomEffectCriteria:
         start_time: float,
         duration: float,
         easing: EasingType | None,
-        start_zoom: int = 1.0,
-        end_zoom: int = 1.5,
+        start_zoom: float = 1.0,
+        end_zoom: float = 1.5,
         start_pan_position: tuple[int, int] = (0, 0),
         end_pan_position: tuple[int, int] = (0, 0),
     ):
@@ -26,16 +26,15 @@ class PanZoomEffectCriteria:
         self.easing: EasingType | None = easing
 
 
-def pan_zoom_frame(video_resolution: tuple[int, int], criteria: PanZoomEffectCriteria) -> Callable:
-    video_width = video_resolution[0]
-    video_height = video_resolution[1]
+def pan_zoom_frame(clip: VideoClip, criteria: PanZoomEffectCriteria) -> VideoClip:
+    video_width = clip.size[0]
+    video_height = clip.size[1]
 
     start = criteria.start_time
     end = criteria.start_time + criteria.duration
 
     def make_frame(get_frame, t):
         frame = get_frame(t)
-
         if t < start or t >= end:
             return frame
 
@@ -73,4 +72,4 @@ def pan_zoom_frame(video_resolution: tuple[int, int], criteria: PanZoomEffectCri
         frame = cv2.resize(cropped, (video_width, video_height))
         return frame
 
-    return make_frame
+    return clip.transform(make_frame, apply_to=["mask", "audio"])

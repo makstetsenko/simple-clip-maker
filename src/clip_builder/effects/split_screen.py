@@ -73,12 +73,12 @@ def split_screen_clips(
     position_layout: tuple[int, int],
     clips_margin: int = 0,
     clip_duration: float | None = None,
-):
+) -> VideoClip:
     default_positions = get_positions_from_layout(position_layout)
 
     positioned_clips = []
     for i, clip_criteria in enumerate(clips_criteria):
-        clip_position = clip_criteria.position if clip_criteria.position != None else default_positions[i]
+        clip_position = clip_criteria.position if clip_criteria.position is not None else default_positions[i]
 
         pos_clip = set_clip_position(
             clip=clip_criteria.clip,
@@ -90,7 +90,7 @@ def split_screen_clips(
         )
         positioned_clips.append(pos_clip)
 
-    duration = clips_criteria[0].clip.duration if clip_duration == None else clip_duration
+    duration = clips_criteria[0].clip.duration if clip_duration is None else clip_duration
 
     return CompositeVideoClip(
         clips=positioned_clips,

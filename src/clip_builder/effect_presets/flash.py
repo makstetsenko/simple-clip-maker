@@ -11,8 +11,9 @@ def pick_random_color() -> tuple[int, int, int]:
     )
 
 
-def flash_at_clip_start(
+def flash(
     clip: VideoClip,
+    time: float,
     flash_duration: float,
     color: tuple[int, int, int] = (255, 255, 255),
     pick_random_flash_color: bool = False,
@@ -24,16 +25,19 @@ def flash_at_clip_start(
 
     return CompositeVideoClip(
         clips=[clip]
-        + get_flash_clips_effect(clip.size, flashing_times=[0], flash_duration=flash_duration, color=flash_color)
+        + get_flash_clips_effect(clip.size, flashing_times=[time], flash_duration=flash_duration, color=flash_color)
     )
 
 
 def burst_flash(
-    clip: VideoClip, total_flashes, color: tuple[int, int, int] = (255, 255, 255), pick_random_flash_color: bool = False
+    clip: VideoClip,
+    flashes_count: int,
+    color: tuple[int, int, int] = (255, 255, 255),
+    pick_random_flash_color: bool = False,
 ) -> VideoClip:
-    sub_duration = clip.duration / total_flashes
+    sub_duration = clip.duration / flashes_count
     flashing_times = []
-    for i in range(total_flashes):
+    for i in range(flashes_count):
         flashing_times.append(i * sub_duration)
 
     if pick_random_flash_color:

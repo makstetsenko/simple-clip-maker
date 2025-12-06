@@ -1,7 +1,14 @@
 from dataclasses import dataclass
 import random
 from typing import Self
-from src.clip_builder.timeline_config import TimelineConfig, TimelineSegmentConfig, VideoItem
+from src.clip_builder.timeline_config import (
+    TimelineConfig,
+    TimelineSegmentConfig,
+    VideoItem,
+    VideoSegmentEffect,
+    EffectType,
+    EffectMethod,
+)
 from src.clip_builder.effects.crop import fit_video_into_frame_size
 from src.clip_builder.effects.split_screen import SplitScreenCriteria, get_positions_from_layout, split_screen_clips
 from src.clip_builder.preview_video_timeline import PreviewVideoTimeline
@@ -82,7 +89,7 @@ class VideoProject:
         cache_key = self.get_cache_key_from_path(self.audio_path)
         cached_value = self.json_cache.get(cache_key)
 
-        if cached_value == None:
+        if cached_value is None:
             analysis = analyze_music_for_editing(self.audio_path, similarity_threshold=0.6)
 
             self.json_cache.set(cache_key, analysis.to_json())
@@ -100,7 +107,7 @@ class VideoProject:
             cache_key = self.get_cache_key_from_path(p)
             cached_value = self.json_cache.get(cache_key)
 
-            if cached_value == None:
+            if cached_value is None:
                 scenes = analyze_on_static_scenes(p, time_step=0.3, scene_duration_threshold=3)
                 details = video_details(p)
 
@@ -134,9 +141,9 @@ class VideoProject:
 
         timeline_segments = []
         for beat_segment in audio_analysis.beat_segments:
+            start_time = self.get_video_start_time(video_node, beat_segment)
 
             if video_node.resolution.matches_aspect_ratio(self.resolution):
-                start_time = self.get_video_start_time(video_node, beat_segment)
 
                 timeline_segments.append(
                     TimelineSegmentConfig(
@@ -166,14 +173,29 @@ class VideoProject:
 
             video_node = video_node.next
 
-        return TimelineConfig(effects=[], segments=timeline_segments)
+        return TimelineConfig(
+            effects=[
+                VideoSegmentEffect(
+                    effect_type=EffectType.CROP,
+                    method=EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE,
+                    args=[self.resolution.width, self.resolution.height],
+                ),
+                VideoSegmentEffect(effect_type=EffectType.ZOOM, method=EffectMethod.ZOOM_IN__ZOOM_OUT, args=[1.1]),
+                VideoSegmentEffect(
+                    effect_type=EffectType.FLASH, method=EffectMethod.FLASH, args=[0, 0.1, [255, 255, 255], False]
+                ),
+            ],
+            segments=timeline_segments,
+        )
 
-    def get_video_start_time(self, video_node: VideoNode, beat_segment: BeatSegment):
+    @staticmethod
+    def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
         scene = random.choice(video_node.scenes)
         start_time = random.random() * (scene.duration - beat_segment.duration - 0.1)
         return start_time
 
-    def get_file_name(self, path: str):
+    @staticmethod
+    def get_file_name(path: str):
         return path.split("/")[-1]
 
     def prepare_dirs(self):
@@ -194,5 +216,6 @@ class VideoProject:
         with open(f"{self.project_dir_path}/timeline_config.yaml", "w") as f:
             f.write(yaml.dump(config.to_dict(), sort_keys=False, indent=2))
 
-    def get_cache_key_from_path(self, path: str):
+    @staticmethod
+    def get_cache_key_from_path(path: str):
         return path.replace("/", "_").replace(" ", "_").replace(".", "_")

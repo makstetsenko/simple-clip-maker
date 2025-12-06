@@ -1,6 +1,5 @@
 import argparse
 from src.clip_builder import build_clip
-import glob
 import logging
 
 movie_formats = ["m4v", "mov", "mp4", "M4V", "MOV", "MP4"]
