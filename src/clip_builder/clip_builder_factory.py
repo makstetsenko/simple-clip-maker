@@ -1,4 +1,3 @@
-from moviepy import *
 from src.clip_builder.video_project import VideoProject
 
 

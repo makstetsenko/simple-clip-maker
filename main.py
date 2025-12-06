@@ -1,5 +1,5 @@
 import argparse
-import src.clip_builder.clip_builder as clip_builder
+from src.clip_builder import build_clip
 import glob
 import logging
 
@@ -51,7 +51,7 @@ def main():
     music_path_template = args.input_dir_path.rstrip("/") + "/*.mp3"
 
     video_resolution_items = args.video_resolution.split("x")
-    clip_builder.build(
+    build_clip(
         audio_file_path_template=music_path_template,
         store_timeline_clips=args.save_timeline_clips,
         video_files_path_template=",".join([args.input_dir_path.rstrip("/") + "/*." + x for x in movie_formats]),

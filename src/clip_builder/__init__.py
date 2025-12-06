@@ -1,0 +1,1 @@
+from src.clip_builder.clip_builder_factory import build as build_clip
