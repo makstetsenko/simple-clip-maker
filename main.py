@@ -52,7 +52,7 @@ def get_first_path(args, file_ext: list[str]) -> str | None:
     return None
 
 
-def main():
+async def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(message)s",
         level=logging.INFO,
@@ -64,7 +64,7 @@ def main():
     music_path_template = get_first_path(args, file_ext=["mp3", "m4a"])
 
     video_resolution_items = args.video_resolution.split("x")
-    build_clip(
+    await build_clip(
         audio_file_path_template=music_path_template,
         store_timeline_clips=args.save_timeline_clips,
         video_files_path_template=",".join(
@@ -80,7 +80,5 @@ def main():
     )
 
 
-try:
-    main()
-except KeyboardInterrupt:
-    pass
+if __name__ == "__main__":
+    asyncio.run(main())

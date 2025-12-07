@@ -1,11 +1,10 @@
 import logging
-from asyncio import Task
+from asyncio import Task, Future
 from dataclasses import dataclass
 
 import yaml
 from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
 from tqdm import tqdm
-import asyncio
 
 import src.clip_builder.effect_presets.crop as crop_effect_preset
 import src.clip_builder.effect_presets.flash as flash_effect_preset
@@ -17,7 +16,13 @@ from src.clip_builder.timeline_config import TimelineConfig, EffectType, EffectM
 from src.clip_builder.video_project import TimelineSegmentConfig
 from src.clip_builder.video_resolution import VideoResolution
 
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
+
 logger = logging.getLogger(__name__)
+
+
+process_pool = ProcessPoolExecutor(max_workers=4)
 
 
 @dataclass
@@ -27,8 +32,8 @@ class VideoClipBuilder:
     temp_path: str
     debug: bool = False
 
-    def build_clip(self, config: TimelineConfig) -> str:
-        segments = self.build_segment_clips(config)
+    async def build_clip(self, config: TimelineConfig) -> str:
+        segments = await self.build_segment_clips(config)
         clips = [VideoFileClip(s) for s in segments]
 
         chained_clip_path = f"{self.temp_path}/chained_clip.mp4"
@@ -42,21 +47,36 @@ class VideoClipBuilder:
 
         return chained_clip_path
 
-    def build_segment_clips(self, config: TimelineConfig):
-        segment_clips: list[str] = []
+    async def build_segment_clips(self, config: TimelineConfig):
 
-        with tqdm(total=len(config.segments)) as progress_bar:
-            progress_bar.set_description("Building segments")
+        loop = asyncio.get_running_loop()
+        tasks: set[Future[str]] = set()
 
+        progress_bar = tqdm(total=len(config.segments))
+        progress_bar.set_description("Building segments")
+
+        def done_callback(t: Future[str]):
+            tasks.discard(t)
+            progress_bar.update(1)
+
+        try:
             for segment in config.segments:
                 if segment.is_split_screen:
-                    segment_clips.append(self.write_spit_screen_clip(self.temp_path, segment, config.effects))
+                    task = loop.run_in_executor(
+                        process_pool, self.write_spit_screen_clip, self.temp_path, segment, config.effects
+                    )
                 else:
-                    segment_clips.append(self.write_single_panel_clip(self.temp_path, segment, config.effects))
+                    task = loop.run_in_executor(
+                        process_pool, self.write_single_panel_clip, self.temp_path, segment, config.effects
+                    )
 
-                progress_bar.update(1)
+                task.add_done_callback(done_callback)
+                tasks.add(task)
 
-        return segment_clips
+            return await asyncio.gather(*tasks)
+        finally:
+            process_pool.shutdown(wait=True)
+            progress_bar.close()
 
     def write_single_panel_clip(
         self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
