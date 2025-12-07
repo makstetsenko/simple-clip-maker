@@ -145,6 +145,8 @@ class VideoProject:
                         videos=[VideoItem(path=video_node.path, start_time=start_time)],
                         effects=[],
                         duration=beat_segment.duration,
+                        start_time=beat_segment.start_time,
+                        end_time=beat_segment.end_time,
                     )
                 )
             else:
@@ -161,12 +163,15 @@ class VideoProject:
                         ],
                         effects=[],
                         duration=beat_segment.duration,
+                        start_time=beat_segment.start_time,
+                        end_time=beat_segment.end_time,
                     )
                 )
 
             video_node = video_node.next
 
         return TimelineConfig(
+            duration=timeline_segments[-1].end_time,
             effects=[
                 VideoSegmentEffect(
                     effect_type=EffectType.CROP,

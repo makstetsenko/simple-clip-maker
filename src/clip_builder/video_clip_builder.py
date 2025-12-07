@@ -1,5 +1,7 @@
+import asyncio
 import logging
-from asyncio import Task, Future
+from asyncio import Future
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 import yaml
@@ -15,9 +17,6 @@ from src.clip_builder.effects.split_screen import split_screen_clips, get_positi
 from src.clip_builder.timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
 from src.clip_builder.video_project import TimelineSegmentConfig
 from src.clip_builder.video_resolution import VideoResolution
-
-import asyncio
-from concurrent.futures import ProcessPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -50,12 +49,12 @@ class VideoClipBuilder:
     async def build_segment_clips(self, config: TimelineConfig):
 
         loop = asyncio.get_running_loop()
-        tasks: set[Future[str]] = set()
+        tasks: set[Future[tuple[int, str]]] = set()
 
         progress_bar = tqdm(total=len(config.segments))
         progress_bar.set_description("Building segments")
 
-        def done_callback(t: Future[str]):
+        def done_callback(t: Future[tuple[int, str]]):
             tasks.discard(t)
             progress_bar.update(1)
 
@@ -73,14 +72,17 @@ class VideoClipBuilder:
                 task.add_done_callback(done_callback)
                 tasks.add(task)
 
-            return await asyncio.gather(*tasks)
+            segment_clips: list[tuple[int, str]] = await asyncio.gather(*tasks)
+            segment_clips.sort(key=lambda x: x[0])
+            return [s[1] for s in segment_clips]
+
         finally:
             process_pool.shutdown(wait=True)
             progress_bar.close()
 
     def write_single_panel_clip(
         self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
-    ) -> str:
+    ) -> tuple[int, str]:
         video = segment_config.videos[0]
 
         merged_clip: VideoClip = VideoFileClip(video.path)
@@ -96,11 +98,11 @@ class VideoClipBuilder:
         subclip.close()
         merged_clip.close()
 
-        return segment_clip_path
+        return (segment_config.index, segment_clip_path)
 
     def write_spit_screen_clip(
         self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
-    ) -> str:
+    ) -> tuple[int, str]:
 
         if segment_config.videos is None or len(segment_config.videos) == 0:
             raise Exception("Videos list is empty or null")
@@ -146,7 +148,7 @@ class VideoClipBuilder:
             subclipped.close()
             clip.close()
 
-            return segment_clip_path
+            return (segment_config.index, segment_clip_path)
 
         if len(segment_config.videos) == 2:
             video_1 = segment_config.videos[0]
@@ -194,7 +196,7 @@ class VideoClipBuilder:
             clip_1.close()
             clip_2.close()
 
-            return segment_clip_path
+            return (segment_config.index, segment_clip_path)
 
         position_layout = (
             (1, len(segment_config.videos)) if self.resolution.is_vertical else (len(segment_config.videos), 1)
@@ -227,7 +229,7 @@ class VideoClipBuilder:
         for c in subclips + clips:
             c.close()
 
-        return segment_clip_path
+        return (segment_config.index, segment_clip_path)
 
     def get_clip_padding(self, duration: float):
         requires_frame_drift = duration <= 0.55

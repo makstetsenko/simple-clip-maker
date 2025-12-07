@@ -92,22 +92,26 @@ class TimelineSegmentConfig:
     duration: float
     videos: list[VideoItem]
     is_split_screen: bool
+    start_time: float
+    end_time: float
 
     def to_dict(self) -> dict:
         return {
             "index": self.index,
-            "duration": self.duration,
+            "start_time": self.start_time,
             "is_split_screen": self.is_split_screen,
             "effects": [e.to_dict() for e in self.effects] if len(self.effects) > 0 else None,
             "videos": [v.to_dict() for v in self.videos],
         }
 
     @staticmethod
-    def from_dict(value: dict) -> Self:
+    def from_dict(value: dict, index: int, end_time: float, duration: float) -> Self:
         effects = value.get("effects")
         return TimelineSegmentConfig(
-            duration=value["duration"],
-            index=value["index"],
+            index=index,
+            start_time=value["start_time"],
+            end_time=end_time,
+            duration=duration,
             is_split_screen=value.get("is_split_screen", False),
             videos=[VideoItem.from_dict(j) for j in value["videos"]],
             effects=[VideoSegmentEffect.from_dict(j) for j in effects] if effects is not None else [],
@@ -118,21 +122,43 @@ class TimelineSegmentConfig:
 class TimelineConfig:
     effects: list[VideoSegmentEffect]
     segments: list[TimelineSegmentConfig]
+    duration: float
 
     def to_dict(self) -> dict:
         return {
+            "duration": self.duration,
             "effects": [x.to_dict() for x in self.effects] if len(self.effects) > 0 else None,
             "segments": [x.to_dict() for x in self.segments],
         }
 
     @staticmethod
     def from_dict(value: dict) -> Self:
-        segments = value.get("segments")
+        segment_values = value.get("segments")
 
-        if segments is None:
+        if segment_values is None:
             raise Exception("TimelineConfig: segments list is required")
 
+        timeline_duration = value["duration"]
+
+        segments = []
+
+        for i in range(len(segment_values) - 1):
+            end_time = segment_values[i + 1]["start_time"]
+            duration = end_time - segment_values[i]["start_time"]
+
+            segments.append(TimelineSegmentConfig.from_dict(segment_values[i], i, end_time, duration))
+
+        segments.append(
+            TimelineSegmentConfig.from_dict(
+                value=segment_values[-1],
+                index=len(segment_values) - 1,
+                end_time=timeline_duration,
+                duration=timeline_duration - segment_values[-1]["start_time"],
+            )
+        )
+
         return TimelineConfig(
+            duration=timeline_duration,
             effects=[VideoSegmentEffect.from_dict(x) for x in value.get("effects", [])],
-            segments=[TimelineSegmentConfig.from_dict(x) for x in segments],
+            segments=segments,
         )
