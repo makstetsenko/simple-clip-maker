@@ -1,8 +1,11 @@
 import logging
+from asyncio import Task
 from dataclasses import dataclass
 
-from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips
+import yaml
+from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
 from tqdm import tqdm
+import asyncio
 
 import src.clip_builder.effect_presets.crop as crop_effect_preset
 import src.clip_builder.effect_presets.flash as flash_effect_preset
@@ -22,9 +25,8 @@ class VideoClipBuilder:
     fps: int
     resolution: VideoResolution
     temp_path: str
+    debug: bool = False
 
-    def build_clip(self, config: TimelineConfig) -> str:
-        segments = self.build_segment_clips(config)
         clips = [VideoFileClip(s) for s in segments]
 
         chained_clip_path = f"{self.temp_path}/chained_clip.mp4"
@@ -63,6 +65,7 @@ class VideoClipBuilder:
         subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration)
 
         segment_clip = self.apply_effects(subclip, global_effects + segment_config.effects)
+        segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
 
         segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
         segment_clip.write_videofile(segment_clip_path, audio=None, logger=None, fps=self.fps)
@@ -115,7 +118,7 @@ class VideoClipBuilder:
             )
 
             segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
-
+            segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
             segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
             subclipped.close()
@@ -161,6 +164,7 @@ class VideoClipBuilder:
             )
 
             segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
+            segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
             segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
             subclipped_1.close()
@@ -195,6 +199,7 @@ class VideoClipBuilder:
         )
 
         segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
+        segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
         segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
 
         for c in subclips + clips:
@@ -209,8 +214,7 @@ class VideoClipBuilder:
     def get_subclip(self, clip: VideoClip, start_time: float, duration: float) -> VideoClip:
         return clip[start_time : start_time + duration + self.get_clip_padding(duration)].with_duration(duration)
 
-    @staticmethod
-    def apply_effects(segment_clip: VideoClip, effects: list[VideoSegmentEffect]):
+    def apply_effects(self, segment_clip: VideoClip, effects: list[VideoSegmentEffect]):
         for e in effects:
 
             if e.effect_type == EffectType.ZOOM:
@@ -294,8 +298,23 @@ class VideoClipBuilder:
                     )
 
                 if e.method == EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE:
-                    segment_clip = crop_effects.fit_video_into_frame_size(
-                        clip=segment_clip, size=(int(e.args[0]), int(e.args[1]))
-                    )
+                    segment_clip = crop_effects.fit_video_into_frame_size(clip=segment_clip, size=self.resolution.size)
+
+        return segment_clip
+
+    def add_debug_info_if_requested(self, segment_clip, segment_config):
+        if self.debug:
+            text_clip_overlay = TextClip(
+                text=yaml.safe_dump(segment_config.to_dict()),
+                text_align="left",
+                font_size=10,
+                size=self.resolution.size,
+                duration=segment_config.duration,
+            ).with_fps(self.fps)
+            return (
+                CompositeVideoClip(clips=[segment_clip, text_clip_overlay])
+                .with_duration(segment_config.duration)
+                .with_fps(self.fps)
+            )
 
         return segment_clip

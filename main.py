@@ -3,6 +3,7 @@ import glob
 import argparse
 from src.clip_builder import build_clip
 import logging
+import asyncio
 
 movie_formats = ["m4v", "mov", "mp4"]
 
@@ -35,7 +36,7 @@ def get_args():
     )
 
     parser.add_argument(
-        "--preview", "-p", action="store_true", required=False, help="Show video preview to see how effects works"
+        "--debug", "-d", action="store_true", required=False, help="Show segments info on video for adjusting clip"
     )
 
     return parser.parse_args()
@@ -74,7 +75,7 @@ def main():
             int(video_resolution_items[1]),
         ),
         fps=int(args.fps),
-        preview=args.preview,
+        debug=args.debug,
         timeline_config_path=get_first_path(args, file_ext=["yaml", "yml"]),
     )
 

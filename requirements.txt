@@ -9,3 +9,4 @@ opencv-python
 black
 tqdm
 PyYAML
+asyncio

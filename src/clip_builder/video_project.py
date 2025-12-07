@@ -1,6 +1,24 @@
-from dataclasses import dataclass
+import datetime
+import glob
+import json
+import logging
+import os
 import random
-from typing import Self
+import shutil
+
+import yaml
+from moviepy import VideoFileClip
+
+from src.clip_builder.data_analysis.audio_analyzer import (
+    BeatSegment,
+    analyze_music_for_editing,
+    AudioAnalyzeResult,
+)
+from src.clip_builder.data_analysis.video_analyzer import (
+    analyze_on_static_scenes,
+    video_details,
+)
+from src.clip_builder.json_cache import JsonCache
 from src.clip_builder.timeline_config import (
     TimelineConfig,
     TimelineSegmentConfig,
@@ -9,32 +27,9 @@ from src.clip_builder.timeline_config import (
     EffectType,
     EffectMethod,
 )
-from src.clip_builder.effects.crop import fit_video_into_frame_size
-from src.clip_builder.effects.split_screen import SplitScreenCriteria, get_positions_from_layout, split_screen_clips
-from src.clip_builder.preview_video_timeline import PreviewVideoTimeline
-from src.clip_builder.json_cache import JsonCache
+from src.clip_builder.video_clip_builder import VideoClipBuilder
 from src.clip_builder.video_node import VideoNode
 from src.clip_builder.video_resolution import VideoResolution
-from src.clip_builder.video_clip_builder import VideoClipBuilder
-
-from moviepy import VideoClip, VideoFileClip, vfx
-from src.clip_builder.audio_analyzer import (
-    BeatSegment,
-    analyze_music_for_editing,
-    AudioAnalyzeResult,
-)
-from src.clip_builder.video_analyzer import (
-    analyze_on_static_scenes,
-    video_details,
-)
-
-import datetime
-import glob
-import os
-import logging
-import json
-import shutil
-import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +41,6 @@ class VideoProject:
         fps: int,
         video_files_path_template: str,
         audio_file_path_template: str,
-        preview: bool = False,
     ):
         self.resolution = VideoResolution(resolution)
         self.fps = fps
@@ -64,7 +58,6 @@ class VideoProject:
         for p in video_files_path_template.split(","):
             self.videos_path_list += glob.glob(p)
 
-        self.preview = preview
         self.prepare_dirs()
 
     def get_clip_builder(self) -> VideoClipBuilder:
@@ -178,11 +171,15 @@ class VideoProject:
                 VideoSegmentEffect(
                     effect_type=EffectType.CROP,
                     method=EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE,
-                    args=[self.resolution.width, self.resolution.height],
+                    args=None,
                 ),
-                VideoSegmentEffect(effect_type=EffectType.ZOOM, method=EffectMethod.ZOOM_IN__ZOOM_OUT, args=[1.1]),
                 VideoSegmentEffect(
-                    effect_type=EffectType.FLASH, method=EffectMethod.FLASH, args=[0, 0.1, [255, 255, 255], False]
+                    effect_type=EffectType.ZOOM,
+                    method=EffectMethod.ZOOM_IN_AT_CLIP_STARTS,
+                    args=[1.1, 1],
+                ),
+                VideoSegmentEffect(
+                    effect_type=EffectType.FLASH, method=EffectMethod.FLASH, args=[0, 0.06, [255, 255, 255], False]
                 ),
             ],
             segments=timeline_segments,

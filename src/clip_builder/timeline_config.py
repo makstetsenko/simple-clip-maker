@@ -38,22 +38,34 @@ class VideoSegmentEffect:
     args: list | None
 
     def to_dict(self) -> dict:
+        if self.effect_type is None:
+            raise Exception("VideoSegmentEffect: effect_type is None")
+
+        if self.method is None:
+            raise Exception("VideoSegmentEffect: method is None")
+
         return {
             "effect_type": self.effect_type.value,
             "method": self.method.value,
-            "args": [a for a in self.args],
+            "args": None if self.args is None else [a for a in self.args],
         }
 
     @staticmethod
     def from_dict(value: dict) -> Self:
         effect_type_value = value.get("effect_type")
         method_value = value.get("method")
-        args_value = value.get("args", [])
+        args_value = value.get("args")
+
+        if effect_type_value is None:
+            raise Exception("VideoSegmentEffect: effect_type_value is None")
+
+        if method_value is None:
+            raise Exception("VideoSegmentEffect: method_value is None")
 
         return VideoSegmentEffect(
-            effect_type=None if effect_type_value is None else EffectType(effect_type_value),
-            method=None if method_value is None else EffectMethod(method_value),
-            args=[a for a in args_value],
+            effect_type=EffectType(effect_type_value),
+            method=EffectMethod(method_value),
+            args=[a for a in args_value] if args_value is not None else [],
         )
 
 
@@ -86,18 +98,19 @@ class TimelineSegmentConfig:
             "index": self.index,
             "duration": self.duration,
             "is_split_screen": self.is_split_screen,
-            "effects": [e.to_dict() for e in self.effects],
+            "effects": [e.to_dict() for e in self.effects] if len(self.effects) > 0 else None,
             "videos": [v.to_dict() for v in self.videos],
         }
 
     @staticmethod
     def from_dict(value: dict) -> Self:
+        effects = value.get("effects")
         return TimelineSegmentConfig(
             duration=value["duration"],
             index=value["index"],
-            is_split_screen=value["is_split_screen"],
+            is_split_screen=value.get("is_split_screen", False),
             videos=[VideoItem.from_dict(j) for j in value["videos"]],
-            effects=[VideoSegmentEffect.from_dict(j) for j in value["effects"]],
+            effects=[VideoSegmentEffect.from_dict(j) for j in effects] if effects is not None else [],
         )
 
 
@@ -108,13 +121,18 @@ class TimelineConfig:
 
     def to_dict(self) -> dict:
         return {
-            "effects": [x.to_dict() for x in self.effects],
+            "effects": [x.to_dict() for x in self.effects] if len(self.effects) > 0 else None,
             "segments": [x.to_dict() for x in self.segments],
         }
 
     @staticmethod
     def from_dict(value: dict) -> Self:
+        segments = value.get("segments")
+
+        if segments is None:
+            raise Exception("TimelineConfig: segments list is required")
+
         return TimelineConfig(
-            effects=[VideoSegmentEffect.from_dict(x) for x in value["effects"]],
-            segments=[TimelineSegmentConfig.from_dict(x) for x in value["segments"]],
+            effects=[VideoSegmentEffect.from_dict(x) for x in value.get("effects", [])],
+            segments=[TimelineSegmentConfig.from_dict(x) for x in segments],
         )
