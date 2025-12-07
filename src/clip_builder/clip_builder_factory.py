@@ -1,7 +1,7 @@
 from src.clip_builder.video_project import VideoProject
 
 
-async def build(
+def build(
     video_files_path_template: str,
     audio_file_path_template: str,
     store_timeline_clips: bool,
@@ -29,6 +29,6 @@ async def build(
 
     project.store_timeline_config(timeline_config)
 
-    clip_path = await clip_builder.build_clip(timeline_config)
+    clip_path = clip_builder.build_clip(timeline_config)
 
     project.save_clip_with_audio(clip_path=clip_path)

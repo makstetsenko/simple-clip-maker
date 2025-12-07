@@ -27,6 +27,8 @@ class VideoClipBuilder:
     temp_path: str
     debug: bool = False
 
+    def build_clip(self, config: TimelineConfig) -> str:
+        segments = self.build_segment_clips(config)
         clips = [VideoFileClip(s) for s in segments]
 
         chained_clip_path = f"{self.temp_path}/chained_clip.mp4"
