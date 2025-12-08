@@ -52,7 +52,7 @@ def ramp_speed_segments(
     ramps_count_between_speed: int = 5,
     scale_speed_to_original_duration: bool = False,
 ) -> VideoClip:
-    sub_duration = clip.duration / len(speeds)
+    sub_duration = clip.duration / (len(speeds) - 1)
 
     clips = []
 

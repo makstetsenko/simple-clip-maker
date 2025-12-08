@@ -17,6 +17,7 @@ from src.clip_builder.data_analysis.audio_analyzer import (
 from src.clip_builder.data_analysis.video_analyzer import (
     analyze_on_static_scenes,
     video_details,
+    SceneInfo,
 )
 from src.clip_builder.json_cache import JsonCache
 from src.clip_builder.timeline_config import (
@@ -171,6 +172,7 @@ class VideoProject:
             video_node = video_node.next
 
         return TimelineConfig(
+            fps=self.fps,
             duration=timeline_segments[-1].end_time,
             effects=[
                 VideoSegmentEffect(
@@ -197,8 +199,8 @@ class VideoProject:
 
     @staticmethod
     def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
-        scene = random.choice(video_node.scenes)
-        start_time = random.random() * (scene.duration - beat_segment.duration - 0.1)
+        scene: SceneInfo = random.choice(video_node.scenes)
+        start_time = random.random() * (scene.end_time - beat_segment.duration - 0.1)
         return start_time
 
     @staticmethod
