@@ -13,6 +13,7 @@ import src.clip_builder.effect_presets.flash as flash_effect_preset
 import src.clip_builder.effect_presets.pan as pan_effect_preset
 import src.clip_builder.effect_presets.zoom as zoom_effect_preset
 import src.clip_builder.effects.crop as crop_effects
+import src.clip_builder.effects.playback as playback_effects
 from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
 from src.clip_builder.timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
 from src.clip_builder.video_project import TimelineSegmentConfig
@@ -21,7 +22,7 @@ from src.clip_builder.video_resolution import VideoResolution
 logger = logging.getLogger(__name__)
 
 
-process_pool = ProcessPoolExecutor(max_workers=4)
+process_pool = ProcessPoolExecutor(max_workers=1)
 
 
 @dataclass
@@ -37,7 +38,7 @@ class VideoClipBuilder:
 
         chained_clip_path = f"{self.temp_path}/chained_clip.mp4"
         chained_clip = concatenate_videoclips(clips=clips, method="compose")
-        chained_clip.write_videofile(chained_clip_path, audio=None, fps=self.fps)
+        self.write_video_file(chained_clip, chained_clip_path)
 
         for c in clips:
             c.close()
@@ -88,11 +89,11 @@ class VideoClipBuilder:
         merged_clip: VideoClip = VideoFileClip(video.path)
         subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration)
 
+        segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
+
         segment_clip = self.apply_effects(subclip, global_effects + segment_config.effects)
         segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-
-        segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
-        segment_clip.write_videofile(segment_clip_path, audio=None, logger=None, fps=self.fps)
+        self.write_video_file(segment_clip, segment_clip_path)
 
         segment_clip.close()
         subclip.close()
@@ -143,7 +144,7 @@ class VideoClipBuilder:
 
             segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
             segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-            segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+            self.write_video_file(segment_clip, segment_clip_path)
 
             subclipped.close()
             clip.close()
@@ -189,7 +190,7 @@ class VideoClipBuilder:
 
             segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
             segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-            segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+            self.write_video_file(segment_clip, segment_clip_path)
 
             subclipped_1.close()
             subclipped_2.close()
@@ -224,7 +225,7 @@ class VideoClipBuilder:
 
         segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
         segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-        segment_clip.write_videofile(filename=segment_clip_path, audio=None, logger=None, fps=self.fps)
+        self.write_video_file(segment_clip, segment_clip_path)
 
         for c in subclips + clips:
             c.close()
@@ -324,12 +325,27 @@ class VideoClipBuilder:
                 if e.method == EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE:
                     segment_clip = crop_effects.fit_video_into_frame_size(clip=segment_clip, size=self.resolution.size)
 
+            if e.effect_type == EffectType.PLAYBACK:
+
+                if e.method == EffectMethod.FORWARD_REVERSE:
+                    segment_clip = playback_effects.forward_reverse(
+                        clip=segment_clip, start_speed=float(e.args[0]), fast_slow_mode=True
+                    )
+
+                if e.method == EffectMethod.RAMP_SPEED_SEGMENTS:
+                    segment_clip = playback_effects.ramp_speed_segments(
+                        clip=segment_clip,
+                        speeds=[float(a) for a in e.args],
+                        scale_speed_to_original_duration=True,
+                        ramps_count_between_speed=5,
+                    )
+
         return segment_clip
 
-    def add_debug_info_if_requested(self, segment_clip, segment_config):
+    def add_debug_info_if_requested(self, segment_clip, segment_config: TimelineSegmentConfig) -> VideoClip:
         if self.debug:
             text_clip_overlay = TextClip(
-                text=yaml.safe_dump(segment_config.to_dict()),
+                text=yaml.safe_dump(segment_config.to_dict(self.fps)),
                 text_align="left",
                 font_size=10,
                 size=self.resolution.size,
@@ -342,3 +358,18 @@ class VideoClipBuilder:
             )
 
         return segment_clip
+
+    def write_video_file(self, clip: VideoClip, path: str):
+
+        if self.debug:
+            clip.write_videofile(
+                path,
+                audio=None,
+                logger=None,
+                fps=12,
+                preset="ultrafast",
+                ffmpeg_params=["-crf", "34", "-pix_fmt", "yuv420p"],
+            )
+            return
+
+        clip.write_videofile(path, audio=None, logger=None, fps=self.fps)
