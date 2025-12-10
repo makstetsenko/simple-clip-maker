@@ -5,7 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 import yaml
-from moviepy import VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
+from moviepy import ColorClip, VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
 from tqdm import tqdm
 
 import src.clip_builder.effect_presets.crop as crop_effect_preset
@@ -22,7 +22,7 @@ from src.clip_builder.video_resolution import VideoResolution
 logger = logging.getLogger(__name__)
 
 
-process_pool = ProcessPoolExecutor(max_workers=1)
+process_pool = ProcessPoolExecutor(max_workers=4)
 
 
 @dataclass
@@ -46,6 +46,20 @@ class VideoClipBuilder:
         chained_clip.close()
 
         return chained_clip_path
+
+    def set_debug(self, debug: bool):
+        self.debug = debug
+
+        if not debug:
+            return
+
+        self.resolution_backup = VideoResolution(self.resolution.size)
+
+        scale = self.resolution.height / 240.0
+        self.resolution = VideoResolution(
+            size=(int(self.resolution.width / scale), int(self.resolution.height / scale))
+        )
+        self.fps = 12
 
     async def build_segment_clips(self, config: TimelineConfig):
 
@@ -86,7 +100,8 @@ class VideoClipBuilder:
     ) -> tuple[int, str]:
         video = segment_config.videos[0]
 
-        merged_clip: VideoClip = VideoFileClip(video.path)
+        merged_clip = self.load_clip(video.path)
+
         subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration)
 
         segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
@@ -112,7 +127,7 @@ class VideoClipBuilder:
 
         if len(segment_config.videos) == 1:
             video = segment_config.videos[0]
-            clip = VideoFileClip(video.path)
+            clip = self.load_clip(video.path)
             subclipped = self.get_subclip(clip, video.start_time, segment_config.duration)
 
             position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
@@ -155,8 +170,8 @@ class VideoClipBuilder:
             video_1 = segment_config.videos[0]
             video_2 = segment_config.videos[1]
 
-            clip_1 = VideoFileClip(video_1.path)
-            clip_2 = VideoFileClip(video_2.path)
+            clip_1 = self.load_clip(video_1.path)
+            clip_2 = self.load_clip(video_2.path)
 
             subclipped_1: VideoClip = self.get_subclip(clip_1, video_1.start_time, segment_config.duration)
             subclipped_2: VideoClip = self.get_subclip(clip_2, video_2.start_time, segment_config.duration)
@@ -209,7 +224,7 @@ class VideoClipBuilder:
         subclips: list[VideoClip] = []
 
         for i, v in enumerate(segment_config.videos):
-            c = VideoFileClip(v.path)
+            c = self.load_clip(v.path)
             s = self.get_subclip(c, v.start_time, segment_config.duration)
             clips.append(c)
             subclips.append(s)
@@ -344,15 +359,30 @@ class VideoClipBuilder:
 
     def add_debug_info_if_requested(self, segment_clip, segment_config: TimelineSegmentConfig) -> VideoClip:
         if self.debug:
-            text_clip_overlay = TextClip(
-                text=yaml.safe_dump(segment_config.to_dict(self.fps)),
-                text_align="left",
-                font_size=10,
-                size=self.resolution.size,
-                duration=segment_config.duration,
-            ).with_fps(self.fps)
+
+            text_bg_clip_overlay = (
+                ColorClip(
+                    color=(255, 255, 255),
+                    size=(60, 60),
+                    duration=segment_config.duration,
+                )
+                .with_position((0, 0))
+                .with_fps(1)
+            )
+
+            text_clip_overlay = (
+                TextClip(
+                    text=str(segment_config.index),
+                    text_align="left",
+                    font_size=26,
+                    size=(60, 60),
+                    duration=segment_config.duration,
+                )
+                .with_position((0, 0))
+                .with_fps(1)
+            )
             return (
-                CompositeVideoClip(clips=[segment_clip, text_clip_overlay])
+                CompositeVideoClip(clips=[segment_clip, text_bg_clip_overlay, text_clip_overlay])
                 .with_duration(segment_config.duration)
                 .with_fps(self.fps)
             )
@@ -366,10 +396,16 @@ class VideoClipBuilder:
                 path,
                 audio=None,
                 logger=None,
-                fps=12,
+                fps=self.fps,
                 preset="ultrafast",
                 ffmpeg_params=["-crf", "34", "-pix_fmt", "yuv420p"],
             )
             return
 
         clip.write_videofile(path, audio=None, logger=None, fps=self.fps)
+
+    def load_clip(self, path):
+        if self.debug:
+            return VideoFileClip(path, audio=False, resize_algorithm="fast_bilinear").resized(0.1)
+
+        return VideoFileClip(path)

@@ -18,7 +18,7 @@ async def build(
     )
 
     clip_builder = project.get_clip_builder()
-    clip_builder.debug = debug
+    clip_builder.set_debug(debug)
 
     # Use config as separate object to be able to load it from external file
     timeline_config = (

@@ -10,3 +10,6 @@ black
 tqdm
 PyYAML
 asyncio
+fastapi
+uvicorn
+fastapi[standard]
