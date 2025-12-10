@@ -14,6 +14,8 @@ export type TimelineSegmentEffect = {
 export type TimelineSegment = {
   index: number
   start_time: number
+  duration: number
+  end_time: number
   is_split_screen: boolean
   effects: TimelineSegmentEffect[] | null
   videos: TimelineSegmentVideo[]

@@ -13,12 +13,16 @@
       </div>
     </div>
 
-    <div class="timeline">
+    <div class="timeline" :style="{ height: timelineHeight + 'px' }">
       <TimelineSegment
         :key="s.index"
         v-for="s in props.segments"
         :index="s.index"
-        :time="s.start_time"
+        :start_time="s.start_time"
+        :duration="s.duration"
+        :end_time="s.end_time"
+        :timeline_duration="props.duration"
+        :timeline_height="timelineHeight"
       />
     </div>
   </div>
@@ -29,22 +33,21 @@ import type { TimelineConfig } from '../../models/Timeline'
 import TimelineSegment from './TimelineSegment.vue'
 
 const props = defineProps<TimelineConfig>()
+
+const timelineHeight = 2000 // px
 </script>
 
 <style scoped>
 .timeline-container {
   width: 400px;
-  padding: 40px;
   background: #d3d3d3;
 }
 
 .timeline {
   width: 200px;
   border: 6px solid black;
-  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   background: #f1f1f1;
 }
 </style>

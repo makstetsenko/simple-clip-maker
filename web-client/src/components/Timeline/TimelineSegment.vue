@@ -1,43 +1,54 @@
 <template>
-  <div class="segment">
+  <div class="segment" :style="{ height: segmentHeight + 'px' }">
     <div class="segment-label">
-      <div class="segment-number">{{ index }}</div>
-      <div class="segment-time">{{ time }}</div>
+      <div class="segment-number"># {{ index }}</div>
+      <div class="segment-time">Time: {{ start_time?.toFixed(2) }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   index: Number,
-  time: Number,
+  start_time: Number,
+  duration: Number,
+  end_time: Number,
+  timeline_duration: Number,
+  timeline_height: Number,
+})
+
+const segmentHeight = computed(() => {
+  const scale = props.duration! / props.timeline_duration!
+  console.log(scale)
+  return scale * props.timeline_height! - 4 // 4 here is border width
 })
 </script>
 
 <style scoped>
 .segment {
-  height: 180px;
-  border: 6px solid #6a64d8;
+  border: 2px solid #6a64d8;
   background: #e6e6e6;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: start;
+  justify-content: start;
   position: relative;
 }
 
 .segment-label {
-  text-align: center;
+  text-align: left;
   color: #6a64d8;
   font-weight: 700;
   font-size: 20px;
 }
 
 .segment-number {
-  font-size: 26px;
+  font-size: 20px;
+  margin-bottom: 4px;
 }
 
 .segment-time {
-  margin-top: 4px;
-  font-size: 20px;
+  font-size: 14px;
 }
 </style>

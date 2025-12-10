@@ -102,14 +102,11 @@ class TimelineSegmentConfig:
     end_time: float
 
     def to_dict(self, fps: int) -> dict:
-        start_time_seconds = int(self.start_time)
-        start_time_frames = int((self.start_time - start_time_seconds) * fps)
-
-        formatted_start_time = str(datetime.timedelta(seconds=start_time_seconds)) + " " + str(start_time_frames)
         return {
             "index": self.index,
             "start_time": self.start_time,
-            "start_time_formatted": formatted_start_time,
+            "duration": self.duration,
+            "end_time": self.end_time,
             "is_split_screen": self.is_split_screen,
             "effects": [e.to_dict() for e in self.effects] if len(self.effects) > 0 else None,
             "videos": [v.to_dict() for v in self.videos],
