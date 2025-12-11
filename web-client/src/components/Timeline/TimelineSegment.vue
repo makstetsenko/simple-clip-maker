@@ -1,20 +1,26 @@
 <template>
   <div
-    class="segment"
-    @click="() => onSegmentClick && onSegmentClick(index)"
-    :style="{ height: segmentHeight + 'px' }"
+    :class="{ segment: true, selected: selected }"
+    @click.exact="() => onClick(false)"
+    @click.shift="() => onClick(true)"
+    :style="{ height: segmentHeight + 'px', top: segmentTopPosition + 'px' }"
   >
     <div class="segment-label">
       <div class="segment-number"># {{ index }}</div>
-      <div class="segment-time">Time: {{ startTime?.toFixed(2) }}</div>
+      <div class="segment-time">
+        {{ secondsToTimeSpanFractionalFormat(startTime) }} -
+        {{ secondsToTimeSpanFractionalFormat(endTime) }}
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 import { computed } from 'vue'
 
 const props = defineProps({
+  id: String,
   index: Number,
   startTime: Number,
   duration: Number,
@@ -22,28 +28,42 @@ const props = defineProps({
   timelineDuration: Number,
   timelineHeight: Number,
   onSegmentClick: Function,
+  selected: Boolean,
 })
+
+const emits = defineEmits(['onSegmentClick'])
+
+const onClick = (multiselect: boolean) => {
+  emits('onSegmentClick', props.id, multiselect)
+}
 
 const segmentHeight = computed(() => {
   const scale = props.duration! / props.timelineDuration!
-  return scale * props.timelineHeight! - getSegmentPadding()
+  return scale * props.timelineHeight!
 })
 
-const getSegmentPadding = () => {
-  const borderWidth = 2
-  return 2 * borderWidth
-}
+const segmentTopPosition = computed(() => {
+  const topPosition =
+    ((props.startTime || 0) * (props.timelineHeight || 0)) / (props.timelineDuration || 0)
+  return topPosition
+})
 </script>
 
 <style scoped>
 .segment {
   cursor: pointer;
-  border: 2px solid #6a64d8;
+  border: 4px solid #6a64d8;
   background: #e6e6e6;
-  display: flex;
-  align-items: start;
-  justify-content: start;
-  position: relative;
+  position: absolute;
+  width: 150px;
+  left: 0px;
+  top: 0px;
+  z-index: 100;
+}
+
+.selected {
+  width: 200px;
+  z-index: 101;
 }
 
 .segment-label {

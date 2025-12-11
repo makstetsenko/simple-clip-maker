@@ -6,12 +6,14 @@ export type TimelineConfig = {
 }
 
 export type TimelineSegmentEffect = {
+  id: string,
   effect_type: string
   method: string
-  args: []
+  args: object | null
 }
 
 export type TimelineSegment = {
+  id: string,
   index: number
   start_time: number
   duration: number
@@ -22,6 +24,7 @@ export type TimelineSegment = {
 }
 
 export type TimelineSegmentVideo = {
+  id: string,
   path: string
   start_time: number
 }

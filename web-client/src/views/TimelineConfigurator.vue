@@ -27,21 +27,25 @@ const timelineProps = computed<TimelineItemProps | null>(() => {
     fps: timelineConfig.value.fps,
     duration: timelineConfig.value.duration,
     effects: timelineConfig.value.effects.map((x) => ({
+      id: x.id,
       method: x.method,
       args: x.args,
       effectType: x.effect_type,
     })),
     segments: timelineConfig.value.segments.map((x) => ({
+      id: x.id,
       duration: x.duration,
       endTime: x.end_time,
       startTime: x.start_time,
       index: x.index,
       splitScreen: x.is_split_screen,
       videos: x.videos.map((v) => ({
+        id: x.id,
         path: v.path,
         startTime: v.start_time,
       })),
       effects: x.effects?.map((e) => ({
+        id: x.id,
         effectType: e.effect_type,
         method: e.method,
         args: e.args,

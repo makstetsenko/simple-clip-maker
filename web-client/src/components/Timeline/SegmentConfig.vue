@@ -1,26 +1,27 @@
 <template>
-  <h3>Segment config</h3>
+  <div class="segment-config">
+    <h3>
+      Seg: #{{ index }} ({{ secondsToTimeSpanFractionalFormat(startTime) }} -
+      {{ secondsToTimeSpanFractionalFormat(endTime) }})
+    </h3>
 
-  <div>index: {{ index }}</div>
-  <div>startTime: {{ startTime }}</div>
-  <div>duration: {{ duration }}</div>
-  <div>endTime: {{ endTime }}</div>
+    <div>
+      Videos
+      <div :key="v.id" v-for="v in videos">{{ v.startTime }} - {{ v.path }}</div>
+    </div>
 
-  <div>
-    Videos
-    <div :key="v.path" v-for="v in videos">{{ v.startTime }} - {{ v.path }}</div>
-  </div>
-
-  <div v-if="effects">
-    Effects
-    <div :key="e.effectType" v-for="e in effects">
-      {{ e.effectType }}.{{ e.method }}({{ e.args }})
+    <div v-if="effects">
+      Effects
+      <div :key="e.id" v-for="e in effects">{{ e.effectType }}.{{ e.method }}({{ e.args }})</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { secondsToTimeSpanFractionalFormat } from '@/services/time'
+
 interface SegmentConfigProps {
+  id: string
   index: number
   startTime: number
   duration: number
@@ -30,15 +31,23 @@ interface SegmentConfigProps {
 }
 
 interface SegmentEffectProps {
+  id: string
   effectType: string
   method: string
-  args: []
+  args: object | null
 }
 
 interface SegmentVideoProps {
+  id: string
   path: string
   startTime: number
 }
 
 defineProps<SegmentConfigProps>()
 </script>
+
+<style scoped>
+.segment-config {
+  background: #9cadbb;
+}
+</style>
