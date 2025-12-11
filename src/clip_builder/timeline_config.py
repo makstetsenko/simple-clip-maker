@@ -1,47 +1,15 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Self
-import datetime
 
-
-class EffectType(Enum):
-    ZOOM = "zoom"
-    PAN = "pan"
-    FLASH = "flash"
-    CROP = "crop"
-    PLAYBACK = "playback"
-
-
-class EffectMethod(Enum):
-    # Zoom methods
-    ZOOM_IN__ZOOM_OUT = "zoom_in__zoom_out"
-    ZOOM_OUT__ZOOM_IN = "zoom_out__zoom_in"
-    ZOOM_IN_AT_CLIP_STARTS = "zoom_in_at_clip_starts"
-    ZOOM_IN_AT_CLIP_ENDS = "zoom_in_at_clip_ends"
-    ZOOM_BUMP = "zoom_bump"
-
-    # Pan methods
-    PAN_SIDE_TO_SIDE = "pan_side_to_side"
-
-    # Flash methods
-    FLASH = "flash"
-    BURST_FLASH = "burst_flash"
-
-    # Crop methods
-    LINE_CROP = "line_crop"
-    BURST_LINE_CROP = "burst_line_crop"
-    FIT_VIDEO_INTO_FRAME_SIZE = "fit_video_into_frame_size"
-
-    # Playback methods
-    RAMP_SPEED_SEGMENTS = "ramp_speed_segments"
-    FORWARD_REVERSE = "forward_reverse"
+from src.clip_builder.effects_descriptor import EffectArgsBase, EffectMethod, EffectType, build_effect_args
 
 
 @dataclass
 class VideoSegmentEffect:
+    id: str
     effect_type: EffectType | None
     method: EffectMethod | None
-    args: list | None
+    args: EffectArgsBase | None
 
     def to_dict(self) -> dict:
         if self.effect_type is None:
@@ -51,9 +19,10 @@ class VideoSegmentEffect:
             raise Exception("VideoSegmentEffect: method is None")
 
         return {
+            "id": self.id,
             "effect_type": self.effect_type.value,
             "method": self.method.value,
-            "args": None if self.args is None else [a for a in self.args],
+            "args": None if self.args is None else self.args.to_dict(),
         }
 
     @staticmethod
@@ -67,25 +36,29 @@ class VideoSegmentEffect:
 
         if method_value is None:
             raise Exception("VideoSegmentEffect: method_value is None")
-
+        effect_type = EffectType(effect_type_value)
+        method = EffectMethod(method_value)
         return VideoSegmentEffect(
-            effect_type=EffectType(effect_type_value),
-            method=EffectMethod(method_value),
-            args=[a for a in args_value] if args_value is not None else [],
+            id=value["id"],
+            effect_type=effect_type,
+            method=method,
+            args=build_effect_args(effect_type, method, args_value) if args_value is not None else None,
         )
 
 
 @dataclass
 class VideoItem:
+    id: str
     path: str
     start_time: float
 
     def to_dict(self) -> dict:
-        return {"path": self.path, "start_time": self.start_time}
+        return {"id": self.id, "path": self.path, "start_time": self.start_time}
 
     @staticmethod
     def from_dict(value: dict) -> Self:
         return VideoItem(
+            id=value["id"],
             path=value["path"],
             start_time=value["start_time"],
         )
@@ -93,6 +66,7 @@ class VideoItem:
 
 @dataclass
 class TimelineSegmentConfig:
+    id: str
     index: int
     effects: list[VideoSegmentEffect]
     duration: float
@@ -101,8 +75,9 @@ class TimelineSegmentConfig:
     start_time: float
     end_time: float
 
-    def to_dict(self, fps: int) -> dict:
+    def to_dict(self) -> dict:
         return {
+            "id": self.id,
             "index": self.index,
             "start_time": self.start_time,
             "duration": self.duration,
@@ -113,13 +88,15 @@ class TimelineSegmentConfig:
         }
 
     @staticmethod
-    def from_dict(value: dict, index: int, end_time: float, duration: float) -> Self:
+    def from_dict(value: dict, index: int) -> Self:
         effects = value.get("effects")
+
         return TimelineSegmentConfig(
+            id=value["id"],
             index=index,
             start_time=value["start_time"],
-            end_time=end_time,
-            duration=duration,
+            end_time=value["end_time"],
+            duration=value["duration"],
             is_split_screen=value.get("is_split_screen", False),
             videos=[VideoItem.from_dict(j) for j in value["videos"]],
             effects=[VideoSegmentEffect.from_dict(j) for j in effects] if effects is not None else [],
@@ -132,13 +109,15 @@ class TimelineConfig:
     segments: list[TimelineSegmentConfig]
     duration: float
     fps: int
+    size: tuple[int, int]
 
     def to_dict(self) -> dict:
         return {
             "fps": self.fps,
+            "size": list(self.size),
             "duration": self.duration,
             "effects": [x.to_dict() for x in self.effects] if len(self.effects) > 0 else None,
-            "segments": [x.to_dict(self.fps) for x in self.segments],
+            "segments": [x.to_dict() for x in self.segments],
         }
 
     @staticmethod
@@ -152,24 +131,13 @@ class TimelineConfig:
 
         segments = []
 
-        for i in range(len(segment_values) - 1):
-            end_time = segment_values[i + 1]["start_time"]
-            duration = end_time - segment_values[i]["start_time"]
-
-            segments.append(TimelineSegmentConfig.from_dict(segment_values[i], i, end_time, duration))
-
-        segments.append(
-            TimelineSegmentConfig.from_dict(
-                value=segment_values[-1],
-                index=len(segment_values) - 1,
-                end_time=timeline_duration,
-                duration=timeline_duration - segment_values[-1]["start_time"],
-            )
-        )
+        for i, v in enumerate(segment_values):
+            segments.append(TimelineSegmentConfig.from_dict(v, index=i))
 
         return TimelineConfig(
             duration=timeline_duration,
             effects=[VideoSegmentEffect.from_dict(x) for x in value.get("effects", [])],
             segments=segments,
             fps=value["fps"],
+            size=(value["size"][0], value["size"][1]),
         )

@@ -5,6 +5,7 @@ import logging
 import os
 import random
 import shutil
+import uuid
 
 import yaml
 from moviepy import VideoFileClip
@@ -31,6 +32,7 @@ from src.clip_builder.timeline_config import (
 from src.clip_builder.video_clip_builder import VideoClipBuilder
 from src.clip_builder.video_node import VideoNode
 from src.clip_builder.video_resolution import VideoResolution
+from src.clip_builder.effects_descriptor import EffectArgs
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +143,10 @@ class VideoProject:
 
                 timeline_segments.append(
                     TimelineSegmentConfig(
+                        id=str(uuid.uuid4()),
                         index=beat_segment.index,
                         is_split_screen=False,
-                        videos=[VideoItem(path=video_node.path, start_time=start_time)],
+                        videos=[VideoItem(id=str(uuid.uuid4()), path=video_node.path, start_time=start_time)],
                         effects=[],
                         duration=beat_segment.duration,
                         start_time=beat_segment.start_time,
@@ -156,11 +159,12 @@ class VideoProject:
 
                 timeline_segments.append(
                     TimelineSegmentConfig(
+                        id=str(uuid.uuid4()),
                         index=beat_segment.index,
                         is_split_screen=True,
                         videos=[
-                            VideoItem(path=video_node.path, start_time=start_time),
-                            VideoItem(path=video_node_2.path, start_time=start_time_2),
+                            VideoItem(id=str(uuid.uuid4()), path=video_node.path, start_time=start_time),
+                            VideoItem(id=str(uuid.uuid4()), path=video_node_2.path, start_time=start_time_2),
                         ],
                         effects=[],
                         duration=beat_segment.duration,
@@ -172,24 +176,30 @@ class VideoProject:
             video_node = video_node.next
 
         return TimelineConfig(
+            size=self.resolution.size,
             fps=self.fps,
             duration=timeline_segments[-1].end_time,
+            segments=timeline_segments,
             effects=[
                 VideoSegmentEffect(
+                    id=str(uuid.uuid4()),
                     effect_type=EffectType.CROP,
                     method=EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE,
                     args=None,
                 ),
                 VideoSegmentEffect(
+                    id=str(uuid.uuid4()),
                     effect_type=EffectType.ZOOM,
                     method=EffectMethod.ZOOM_IN_AT_CLIP_STARTS,
-                    args=[1.1, 1],
+                    args=EffectArgs.ZOOM.ZOOM_IN_AT_CLIP_STARTS(zoom_factor=1.3, zoom_duration=0.1),
                 ),
                 VideoSegmentEffect(
-                    effect_type=EffectType.FLASH, method=EffectMethod.FLASH, args=[0, 0.06, [255, 255, 255], False]
+                    id=str(uuid.uuid4()),
+                    effect_type=EffectType.FLASH,
+                    method=EffectMethod.FLASH,
+                    args=EffectArgs.FLASH.FLASH(time=0, flash_duration=0.06, color=(255, 255, 255)),
                 ),
             ],
-            segments=timeline_segments,
         )
 
     def load_timeline_config(self, config_path):

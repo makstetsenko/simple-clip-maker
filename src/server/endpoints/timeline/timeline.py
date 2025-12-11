@@ -3,10 +3,7 @@ import yaml
 
 config_path = "/Users/maximstecenko/Projects/timeline_config.yaml"
 
-router = APIRouter(
-    prefix="/api/timeline",
-    tags=["timeline"]
-)
+router = APIRouter(prefix="/api/timeline", tags=["timeline"])
 
 
 @router.get("/config")

@@ -18,6 +18,7 @@ from src.clip_builder.effects.split_screen import split_screen_clips, get_positi
 from src.clip_builder.timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
 from src.clip_builder.video_project import TimelineSegmentConfig
 from src.clip_builder.video_resolution import VideoResolution
+from src.clip_builder.effects_descriptor import EffectArgs
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +54,13 @@ class VideoClipBuilder:
         if not debug:
             return
 
-        self.resolution_backup = VideoResolution(self.resolution.size)
+        debug_height = 240
+        scale = self.resolution.height / debug_height
+        debug_width = int(self.resolution.width / scale)
+        if debug_width % 2 != 0:
+            debug_width += 1
 
-        scale = self.resolution.height / 240.0
-        self.resolution = VideoResolution(
-            size=(int(self.resolution.width / scale), int(self.resolution.height / scale))
-        )
+        self.resolution = VideoResolution(size=(debug_width, debug_height))
         self.fps = 12
 
     async def build_segment_clips(self, config: TimelineConfig):
@@ -260,81 +262,85 @@ class VideoClipBuilder:
             if e.effect_type == EffectType.ZOOM:
 
                 if e.method == EffectMethod.ZOOM_IN__ZOOM_OUT:
-                    zoom_factor = float(e.args[0])
-                    segment_clip = zoom_effect_preset.zoom_in__zoom_out(segment_clip, zoom_factor)
+                    effect_args: EffectArgs.ZOOM.ZOOM_IN__ZOOM_OUT = e.args
+                    segment_clip = zoom_effect_preset.zoom_in__zoom_out(
+                        segment_clip, zoom_factor=effect_args.zoom_factor
+                    )
 
                 if e.method == EffectMethod.ZOOM_OUT__ZOOM_IN:
-                    zoom_factor = float(e.args[0])
-                    segment_clip = zoom_effect_preset.zoom_out__zoom_in(segment_clip, zoom_factor)
+                    effect_args: EffectArgs.ZOOM.ZOOM_OUT__ZOOM_IN = e.args
+                    segment_clip = zoom_effect_preset.zoom_out__zoom_in(segment_clip, effect_args.zoom_factor)
 
                 if e.method == EffectMethod.ZOOM_IN_AT_CLIP_STARTS:
-                    zoom_factor = float(e.args[0])
-                    zoom_duration = float(e.args[1])
-                    easing = e.args[2] if str(len(e.args)) == 3 else "ease_out"
+                    effect_args: EffectArgs.ZOOM.ZOOM_IN_AT_CLIP_STARTS = e.args
                     segment_clip = zoom_effect_preset.zoom_in_at_clip_starts(
-                        segment_clip, zoom_factor, zoom_duration, easing
+                        segment_clip, effect_args.zoom_factor, effect_args.zoom_duration, effect_args.easing
                     )
 
                 if e.method == EffectMethod.ZOOM_IN_AT_CLIP_ENDS:
-                    zoom_factor = float(e.args[0])
-                    zoom_duration = float(e.args[1])
-                    easing = e.args[2] if str(len(e.args)) == 3 else "ease_out"
+                    effect_args: EffectArgs.ZOOM.ZOOM_IN_AT_CLIP_ENDS = e.args
                     segment_clip = zoom_effect_preset.zoom_in_at_clip_ends(
-                        segment_clip, zoom_factor, zoom_duration, easing
+                        segment_clip, effect_args.zoom_factor, effect_args.zoom_duration, effect_args.easing
                     )
 
                 if e.method == EffectMethod.ZOOM_BUMP:
+                    effect_args: EffectArgs.ZOOM.ZOOM_BUMP = e.args
                     segment_clip = zoom_effect_preset.zoom_bump(
                         clip=segment_clip,
-                        zoom_factor=float(e.args[0]),
-                        bump_count=int(e.args[1]),
-                        reverse=bool(e.args[2]),
+                        zoom_factor=effect_args.zoom_factor,
+                        bump_count=effect_args.bump_count,
+                        reverse=effect_args.reverse,
                     )
 
             if e.effect_type == EffectType.PAN:
 
                 if e.method == EffectMethod.PAN_SIDE_TO_SIDE:
+                    effect_args: EffectArgs.ZOOM.PAN_SIDE_TO_SIDE = e.args
                     segment_clip = pan_effect_preset.pan_side_to_side(
                         clip=segment_clip,
-                        pan=(int(e.args[0][0]), int(e.args[0][1])),
-                        easing=e.args[1] if str(len(e.args)) == 2 else "ease_out",
+                        pan=effect_args.pan,
+                        easing=effect_args.easing,
                     )
 
             if e.effect_type == EffectType.FLASH:
 
                 if e.method == EffectMethod.FLASH:
+                    effect_args: EffectArgs.ZOOM.FLASH = e.args
                     segment_clip = flash_effect_preset.flash(
                         clip=segment_clip,
-                        time=float(e.args[0]),
-                        flash_duration=float(e.args[1]),
-                        color=(int(e.args[2][0]), int(e.args[2][1]), int(e.args[2][2])),
-                        pick_random_flash_color=bool(e.args[3]),
+                        time=effect_args.time,
+                        flash_duration=effect_args.flash_duration,
+                        color=effect_args.color,
+                        pick_random_flash_color=effect_args.pick_random_flash_color,
                     )
 
                 if e.method == EffectMethod.BURST_FLASH:
+                    effect_args: EffectArgs.ZOOM.BURST_FLASH = e.args
                     segment_clip = flash_effect_preset.burst_flash(
                         clip=segment_clip,
-                        flashes_count=int(e.args[0]),
-                        color=(int(e.args[1][0]), int(e.args[1][1]), int(e.args[1][2])),
-                        pick_random_flash_color=bool(e.args[2]),
+                        flashes_count=effect_args.flashes_count,
+                        color=effect_args.color,
+                        pick_random_flash_color=effect_args.pick_random_flash_color,
                     )
 
             if e.effect_type == EffectType.CROP:
 
                 if e.method == EffectMethod.LINE_CROP:
+                    effect_args: EffectArgs.ZOOM.LINE_CROP = e.args
                     segment_clip = crop_effect_preset.line_crop(
                         clip=segment_clip,
-                        line_number=int(e.args[0]),
-                        total_lines=int(e.args[1]),
-                        is_vertical=bool(e.args[2]),
+                        line_number=effect_args.line_number,
+                        total_lines=effect_args.total_lines,
+                        is_vertical=effect_args.is_vertical,
                     )
 
                 if e.method == EffectMethod.BURST_LINE_CROP:
+                    effect_args: EffectArgs.ZOOM.BURST_LINE_CROP = e.args
                     segment_clip = crop_effect_preset.burst_line_crop(
                         clip=segment_clip,
-                        total_lines=int(e.args[0]),
-                        is_vertical=bool(e.args[1]),
-                        reverse_ordering=bool(e.args[2]),
+                        total_lines=effect_args.total_lines,
+                        is_vertical=effect_args.is_vertical,
+                        reverse_ordering=effect_args.reverse_ordering,
                     )
 
                 if e.method == EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE:
@@ -343,16 +349,18 @@ class VideoClipBuilder:
             if e.effect_type == EffectType.PLAYBACK:
 
                 if e.method == EffectMethod.FORWARD_REVERSE:
+                    effect_args: EffectArgs.ZOOM.FORWARD_REVERSE = e.args
                     segment_clip = playback_effects.forward_reverse(
                         clip=segment_clip, start_speed=float(e.args[0]), fast_slow_mode=True
                     )
 
                 if e.method == EffectMethod.RAMP_SPEED_SEGMENTS:
+                    effect_args: EffectArgs.ZOOM.RAMP_SPEED_SEGMENTS = e.args
                     segment_clip = playback_effects.ramp_speed_segments(
                         clip=segment_clip,
-                        speeds=[float(a) for a in e.args],
-                        scale_speed_to_original_duration=True,
-                        ramps_count_between_speed=5,
+                        speeds=effect_args.speeds,
+                        scale_speed_to_original_duration=effect_args.scale_speed_to_original_duration,
+                        ramps_count_between_speed=effect_args.ramps_count_between_speed,
                     )
 
         return segment_clip

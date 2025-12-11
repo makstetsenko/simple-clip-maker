@@ -13,3 +13,4 @@ asyncio
 fastapi
 uvicorn
 fastapi[standard]
+uuid
