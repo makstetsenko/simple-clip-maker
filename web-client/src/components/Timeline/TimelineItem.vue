@@ -4,11 +4,11 @@
     <div>Duration: {{ props.duration }}</div>
 
     <div>
-      Effects
+      Global Effects
 
-      <div :key="effect.effect_type" v-for="effect in props.effects">
+      <div :key="effect.effectType" v-for="effect in props.effects">
         {{ effect.method }}
-        {{ effect.effect_type }}
+        {{ effect.effectType }}
         {{ effect.args }}
       </div>
     </div>
@@ -18,21 +18,81 @@
         :key="s.index"
         v-for="s in props.segments"
         :index="s.index"
-        :start_time="s.start_time"
+        :startTime="s.startTime"
         :duration="s.duration"
-        :end_time="s.end_time"
-        :timeline_duration="props.duration"
-        :timeline_height="timelineHeight"
+        :endTime="s.endTime"
+        :timelineDuration="props.duration"
+        :timelineHeight="timelineHeight"
+        :onSegmentClick="(segmentId: number | null) => (selectedSegmentId = segmentId)"
       />
     </div>
+
+    <SegmentConfig
+      v-if="selectedSegment"
+      :index="selectedSegment.index"
+      :startTime="selectedSegment.startTime"
+      :endTime="selectedSegment.endTime"
+      :duration="selectedSegment.duration"
+      :effects="
+        selectedSegment.effects?.map((x) => ({
+          method: x.method,
+          effectType: x.effectType,
+          args: x.args,
+        }))
+      "
+      :videos="
+        selectedSegment.videos.map((x) => ({
+          path: x.path,
+          startTime: x.startTime,
+        }))
+      "
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { TimelineConfig } from '../../models/Timeline'
+import { computed, ref, type Ref } from 'vue'
 import TimelineSegment from './TimelineSegment.vue'
+import SegmentConfig from './SegmentConfig.vue'
 
-const props = defineProps<TimelineConfig>()
+export interface TimelineItemProps {
+  fps: number
+  duration: number
+  effects: TimelineSegmentEffectProps[] | null | undefined
+  segments: TimelineSegmentProps[]
+}
+
+interface TimelineSegmentProps {
+  index: number
+  startTime: number
+  duration: number
+  endTime: number
+  splitScreen: boolean
+  effects: TimelineSegmentEffectProps[] | null
+  videos: TimelineSegmentVideoProps[]
+}
+
+interface TimelineSegmentEffectProps {
+  effectType: string
+  method: string
+  args: []
+}
+
+interface TimelineSegmentVideoProps {
+  path: string
+  startTime: number
+}
+
+const props = defineProps<TimelineItemProps>()
+
+const selectedSegmentId: Ref<number | null> = ref<number | null>(null)
+const selectedSegment = computed<TimelineSegmentProps | null>(() => {
+  if (selectedSegmentId.value === null || selectedSegmentId.value === undefined) {
+    return null
+  }
+
+  return props.segments[selectedSegmentId.value] as TimelineSegmentProps
+})
 
 const timelineHeight = 2000 // px
 </script>

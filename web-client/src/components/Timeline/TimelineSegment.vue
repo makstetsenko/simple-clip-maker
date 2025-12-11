@@ -1,8 +1,12 @@
 <template>
-  <div class="segment" :style="{ height: segmentHeight + 'px' }">
+  <div
+    class="segment"
+    @click="() => onSegmentClick && onSegmentClick(index)"
+    :style="{ height: segmentHeight + 'px' }"
+  >
     <div class="segment-label">
       <div class="segment-number"># {{ index }}</div>
-      <div class="segment-time">Time: {{ start_time?.toFixed(2) }}</div>
+      <div class="segment-time">Time: {{ startTime?.toFixed(2) }}</div>
     </div>
   </div>
 </template>
@@ -12,22 +16,28 @@ import { computed } from 'vue'
 
 const props = defineProps({
   index: Number,
-  start_time: Number,
+  startTime: Number,
   duration: Number,
-  end_time: Number,
-  timeline_duration: Number,
-  timeline_height: Number,
+  endTime: Number,
+  timelineDuration: Number,
+  timelineHeight: Number,
+  onSegmentClick: Function,
 })
 
 const segmentHeight = computed(() => {
-  const scale = props.duration! / props.timeline_duration!
-  console.log(scale)
-  return scale * props.timeline_height! - 4 // 4 here is border width
+  const scale = props.duration! / props.timelineDuration!
+  return scale * props.timelineHeight! - getSegmentPadding()
 })
+
+const getSegmentPadding = () => {
+  const borderWidth = 2
+  return 2 * borderWidth
+}
 </script>
 
 <style scoped>
 .segment {
+  cursor: pointer;
   border: 2px solid #6a64d8;
   background: #e6e6e6;
   display: flex;
