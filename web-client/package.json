@@ -16,9 +16,11 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@videojs-player/vue": "^1.0.0",
     "axios": "^1.13.2",
     "pinia": "^3.0.4",
     "uuid": "^13.0.0",
+    "video.js": "^8.23.4",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3"
   },

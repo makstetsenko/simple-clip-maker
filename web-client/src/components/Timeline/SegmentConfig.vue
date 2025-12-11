@@ -7,7 +7,10 @@
 
     <div>
       Videos
-      <div :key="v.id" v-for="v in videos">{{ v.startTime }} - {{ v.path }}</div>
+      <div :key="v.id" v-for="v in videos">
+        <div>{{ v.startTime }} - {{ v.path }}</div>
+        <VideoPlayer :videoPath="v.path" />
+      </div>
     </div>
 
     <div v-if="effects">
@@ -19,6 +22,7 @@
 
 <script setup lang="ts">
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
+import VideoPlayer from '../Video/VideoPlayer.vue'
 
 interface SegmentConfigProps {
   id: string
