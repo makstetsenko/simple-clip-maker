@@ -1,6 +1,6 @@
 from moviepy import VideoClip
 
-from src.clip_builder.effects.zoom_effects import EasingType, PanZoomEffectCriteria, pan_zoom_frame
+from ..effects.zoom_effects import EasingType, PanZoomEffectCriteria, pan_zoom_frame
 
 
 def pan_side_to_side(clip: VideoClip, pan: tuple[int, int], easing: EasingType = "ease_out"):

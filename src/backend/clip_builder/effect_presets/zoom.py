@@ -1,6 +1,6 @@
 from moviepy import VideoClip
 
-from src.clip_builder.effects.zoom_effects import EasingType, PanZoomEffectCriteria, pan_zoom_frame
+from ..effects.zoom_effects import EasingType, PanZoomEffectCriteria, pan_zoom_frame
 
 
 def zoom_in__fixed_zoom__zoom_out(clip: VideoClip, zoom_factor: float, zoom_in_duration: float) -> VideoClip:

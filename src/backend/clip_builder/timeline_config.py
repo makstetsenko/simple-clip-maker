@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Self
 
-from src.clip_builder.effects_descriptor import EffectArgsBase, EffectMethod, EffectType, build_effect_args
+from .effects_descriptor import EffectArgsBase, EffectMethod, EffectType, build_effect_args
 
 
 @dataclass

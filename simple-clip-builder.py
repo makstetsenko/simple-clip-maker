@@ -1,7 +1,7 @@
 import glob
 
 import argparse
-from src.clip_builder import build_clip
+from src.backend.clip_builder.clip_builder_factory import build as build_clip
 import logging
 import asyncio
 

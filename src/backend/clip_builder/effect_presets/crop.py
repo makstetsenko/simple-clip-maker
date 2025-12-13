@@ -1,5 +1,5 @@
 from moviepy import ColorClip, CompositeVideoClip, VideoClip
-from src.clip_builder.effects.crop import line_crop as line_crop_effect
+from ..effects.crop import line_crop as line_crop_effect
 
 
 def line_crop(clip: VideoClip, line_number, total_lines, is_vertical: bool) -> VideoClip:

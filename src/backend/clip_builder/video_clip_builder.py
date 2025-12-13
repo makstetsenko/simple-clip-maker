@@ -8,17 +8,17 @@ import yaml
 from moviepy import ColorClip, VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
 from tqdm import tqdm
 
-import src.clip_builder.effect_presets.crop as crop_effect_preset
-import src.clip_builder.effect_presets.flash as flash_effect_preset
-import src.clip_builder.effect_presets.pan as pan_effect_preset
-import src.clip_builder.effect_presets.zoom as zoom_effect_preset
-import src.clip_builder.effects.crop as crop_effects
-import src.clip_builder.effects.playback as playback_effects
-from src.clip_builder.effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
-from src.clip_builder.timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
-from src.clip_builder.video_project import TimelineSegmentConfig
-from src.clip_builder.video_resolution import VideoResolution
-from src.clip_builder.effects_descriptor import EffectArgs
+from .effect_presets import crop  as crop_effect_preset
+from .effect_presets import flash  as flash_effect_preset
+from .effect_presets import pan  as pan_effect_preset
+from .effect_presets import zoom  as zoom_effect_preset
+from .effects import crop  as crop_effects
+from .effects import playback  as playback_effects
+from .effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
+from .timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
+from .video_project import TimelineSegmentConfig
+from .video_resolution import VideoResolution
+from .effects_descriptor import EffectArgs
 
 logger = logging.getLogger(__name__)
 

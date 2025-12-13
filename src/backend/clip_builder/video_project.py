@@ -10,18 +10,18 @@ import uuid
 import yaml
 from moviepy import VideoFileClip
 
-from src.clip_builder.data_analysis.audio_analyzer import (
+from .data_analysis.audio_analyzer import (
     BeatSegment,
     analyze_music_for_editing,
     AudioAnalyzeResult,
 )
-from src.clip_builder.data_analysis.video_analyzer import (
+from .data_analysis.video_analyzer import (
     analyze_on_static_scenes,
     video_details,
     SceneInfo,
 )
-from src.clip_builder.json_cache import JsonCache
-from src.clip_builder.timeline_config import (
+from .json_cache import JsonCache
+from .timeline_config import (
     TimelineConfig,
     TimelineSegmentConfig,
     VideoItem,
@@ -29,10 +29,10 @@ from src.clip_builder.timeline_config import (
     EffectType,
     EffectMethod,
 )
-from src.clip_builder.video_clip_builder import VideoClipBuilder
-from src.clip_builder.video_node import VideoNode
-from src.clip_builder.video_resolution import VideoResolution
-from src.clip_builder.effects_descriptor import EffectArgs
+from .video_clip_builder import VideoClipBuilder
+from .video_node import VideoNode
+from .video_resolution import VideoResolution
+from .effects_descriptor import EffectArgs
 
 logger = logging.getLogger(__name__)
 

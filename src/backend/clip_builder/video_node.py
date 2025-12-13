@@ -1,6 +1,6 @@
 from typing import Callable, Self
-from src.clip_builder.video_resolution import VideoResolution
-from src.clip_builder.data_analysis.video_analyzer import SceneInfo
+from .video_resolution import VideoResolution
+from .data_analysis.video_analyzer import SceneInfo
 
 
 class VideoNode:

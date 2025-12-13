@@ -1,5 +1,5 @@
 from moviepy import CompositeVideoClip, VideoClip
-from src.clip_builder.effects.flash import get_flash_clips as get_flash_clips_effect
+from ..effects.flash import get_flash_clips as get_flash_clips_effect
 import random
 
 

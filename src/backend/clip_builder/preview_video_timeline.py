@@ -4,10 +4,10 @@ import logging
 from moviepy import VideoFileClip, concatenate_videoclips, ImageClip, TextClip, CompositeVideoClip
 from tqdm import tqdm
 
-from src.clip_builder.audio_analyzer import AudioAnalyzeResult, BeatSegment
-from src.clip_builder.effects.crop import fit_video_into_frame_size
-from src.clip_builder.effects.playback import forward_reverse
-from src.clip_builder.video_resolution import VideoResolution
+from .data_analysis.audio_analyzer import AudioAnalyzeResult, BeatSegment
+from .effects.crop import fit_video_into_frame_size
+from .effects.playback import forward_reverse
+from .video_resolution import VideoResolution
 
 logger = logging.getLogger(__name__)
 

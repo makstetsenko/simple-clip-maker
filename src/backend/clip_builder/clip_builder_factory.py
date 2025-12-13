@@ -1,4 +1,4 @@
-from src.clip_builder.video_project import VideoProject
+from .video_project import VideoProject
 
 
 async def build(
