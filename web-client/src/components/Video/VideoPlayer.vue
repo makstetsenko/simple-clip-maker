@@ -1,35 +1,5 @@
-<!-- <template>
-  <video-player
-    src="/your-path/video.mp4"
-    poster="/your-path/poster.jpg"
-    controls
-    :loop="true"
-    :volume="0.6"
-    ...
-    @mounted="..."
-    @ready="..."
-    @play="..."
-    @pause="..."
-    @ended="..."
-    @seeking="..."
-    ...
-  />
-</template>
-
-<script>
-  import { defineComponent } from 'vue'
-  import { VideoPlayer } from '@videojs-player/vue'
-  import 'video.js/dist/video-js.css'
-
-  export default defineComponent({
-    components: {
-      VideoPlayer
-    }
-  })
-</script> -->
-
 <template>
-  <div>
+  <div :style="{ width: state?.width + 'px' }">
     <video-player
       :src="videoUri"
       :controls="true"
@@ -39,19 +9,36 @@
       :inactivity-timeout="60 * 1000"
       :disable-picture-in-picture="true"
       :playback-rates="[0.75, 1, 1.25, 1.5, 2, 4]"
-      @seeked="onSeeked"
+      :control-bar="false"
       @mounted="handleMounted"
+      @timeupdate="onTimeUpdated"
     />
-    <div>Seek time: {{ seekTime }}</div>
+
+    <VideoPlayerTimelineBar
+      :duration="state?.duration"
+      :segment-start-time="playheadTime"
+      :segment-duration="segmentDuration"
+      @on-seeked="onVideoTimelineSeeked"
+      @on-pause="() => player?.pause()"
+      @on-play="() => player?.play()"
+    />
+
+    <div class="footer">
+      <div class="current-time">{{ secondsToTimeSpanFractionalFormat(state?.currentTime) }}</div>
+      <div class="video-duration">{{ secondsToTimeSpanFractionalFormat(state?.duration) }}</div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef, type Ref } from 'vue'
+import { computed, onMounted, ref, shallowRef, type Ref } from 'vue'
 import apiClient from '@/services/apiClient'
 import { VideoPlayer, type VideoPlayerState } from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
 import videojs from 'video.js'
+import { config } from 'process'
+import VideoPlayerTimelineBar from './VideoPlayerTimelineBar.vue'
+import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 
 type VideoJsPlayer = ReturnType<typeof videojs>
 
@@ -60,7 +47,18 @@ const state = shallowRef<VideoPlayerState>()
 
 const props = defineProps({
   videoPath: String,
+  segmentStartTime: Number,
+  segmentDuration: Number,
 })
+
+onMounted(() => {
+  if (player.value) {
+    player.value.currentTime(props.segmentStartTime)
+  }
+})
+
+const playheadTime: Ref<number> = ref(props.segmentStartTime)
+const segmentDuration = props.segmentDuration
 
 const videoUri = computed(() =>
   apiClient.getUri({
@@ -68,16 +66,37 @@ const videoUri = computed(() =>
   }),
 )
 
-const seekTime: Ref<number> = ref(0)
-
-const onSeeked = () => {
-  seekTime.value = state.value!.currentTime
-}
-
-const handleMounted = (payload: any) => {
+const handleMounted = (payload) => {
   player.value = payload.player
   state.value = payload.state
 }
+
+const onTimeUpdated = () => {
+  const endTime: number = playheadTime.value + segmentDuration!
+
+  if (state.value!.currentTime >= endTime) {
+    player.value!.currentTime(playheadTime.value)
+  }
+}
+
+const onVideoTimelineSeeked = (time: number) => {
+  player.value!.currentTime(time)
+  playheadTime.value = time
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+.footer {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+}
+
+.footer.current-time {
+  justify-self: start;
+}
+
+.footer.video-duration {
+  justify-self: end;
+}
+</style>

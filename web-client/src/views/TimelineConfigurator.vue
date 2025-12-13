@@ -55,7 +55,7 @@ const timelineProps = computed<TimelineItemProps | null>(() => {
 })
 
 async function onLoadTimelineClick() {
-  const url = 'api/timeline/config'
+  const url = '/api/timeline/config'
 
   try {
     const resp = await apiClient.get(url)

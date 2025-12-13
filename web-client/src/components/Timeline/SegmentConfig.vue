@@ -9,7 +9,11 @@
       Videos
       <div :key="v.id" v-for="v in videos">
         <div>{{ v.startTime }} - {{ v.path }}</div>
-        <VideoPlayer :videoPath="v.path" />
+        <VideoPlayer
+          :videoPath="v.path"
+          :segmentStartTime="v.startTime"
+          :segmentDuration="duration"
+        />
       </div>
     </div>
 
