@@ -1,13 +1,14 @@
 <template>
   <div>
-    <input type="number" name="zoom-factor" id="zoom-factor" v-model="zoomFactor" />
-    <input type="number" name="bump-count" id="bump-count" v-model="bumpCount" />
-    <input type="checkbox" name="reverse" id="reverse" v-model="reverse" />
+    <InputField type="number" label="zoom-factor" v-model="zoomFactor" />
+    <InputField type="number" label="bump-count" v-model="bumpCount" />
+    <InputField type="checkbox" label="reverse" v-model="reverse" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch, type Ref } from 'vue'
+import InputField from '@/shared/components/InputField.vue'
 
 const props = defineProps({
   args: Object,

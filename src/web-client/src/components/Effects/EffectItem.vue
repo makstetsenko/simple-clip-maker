@@ -1,6 +1,20 @@
 <template>
   <div v-if="effectModel">
-    - {{ EffectType[effectModel.effectType] }}.{{ EffectMethod[effectModel.method] }}
+    <select v-model="effectModel.effectType">
+      <option v-for="e in getEffectTypesFields()" :key="e.value" :value="e.value">
+        {{ e.label }}
+      </option>
+    </select>
+
+    <select v-model="effectModel.method">
+      <option
+        v-for="e in getEffectMethodFields(effectModel.effectType)"
+        :key="e.value"
+        :value="e.value"
+      >
+        {{ e.label }}
+      </option>
+    </select>
 
     <EffectArgsContainer
       :args="effectModel!.args"
@@ -9,19 +23,37 @@
       :id="effectModel.id"
       @on-args-changed="onArgsChanged"
     />
+
+    <button @click="onRemoveClick">Remove</button>
+    <hr />
   </div>
 </template>
 
 <script setup lang="ts">
+import { watch } from 'vue'
+import { getEffectMethodFields, getEffectTypesFields } from './effectFields'
 import EffectArgsContainer from './EffectArgs/EffectArgsContainer.vue'
-import { EffectMethod, EffectType, type EffectModel } from '@/shared/models/TimelineModel'
+import { type EffectModel } from '@/shared/models/TimelineModel'
 
-const emits = defineEmits(['onEffectChanged'])
+const emits = defineEmits(['onRemove'])
 
 const effectModel = defineModel<EffectModel>()
 
-const onArgsChanged = (newArgs: object) => {
+function onArgsChanged(newArgs: object) {
   effectModel.value!.args = newArgs
-  emits('onEffectChanged', effectModel.value)
 }
+
+function onRemoveClick() {
+  emits('onRemove', effectModel.value?.id)
+}
+
+watch(
+  () => effectModel.value!.effectType,
+  (val) => {
+    const methods = getEffectMethodFields(val)
+    if (!methods) return
+
+    effectModel.value!.method = getEffectMethodFields(val)[0]!.value
+  },
+)
 </script>

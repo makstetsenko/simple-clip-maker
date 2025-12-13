@@ -1,13 +1,14 @@
 <template>
   <div>
-    <input type="number" name="zoom-factor" id="zoom-factor" v-model="zoomFactor" />
-    <input type="number" name="zoom-duration" id="zoom-duration" v-model="zoomDuration" />
-    <input type="text" name="easing" id="easing" v-model="easing" />
+    <InputField type="number" label="zoom-factor" v-model="zoomFactor" />
+    <InputField type="number" label="zoom-duration" v-model="zoomDuration" />
+    <InputField type="text" label="easing" v-model="easing" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch, type Ref } from 'vue'
+import InputField from '@/shared/components/InputField.vue'
 
 const props = defineProps({
   args: Object,

@@ -1,12 +1,13 @@
 <template>
   <div>
-    <input type="number" name="start-speed" id="start-speed" v-model="startSpeed" />
-    <input type="checkbox" name="fast-slow-mode" id="fast-slow-mode" v-model="fastSlowMode" />
+    <InputField type="number" label="start-speed" v-model="startSpeed" />
+    <InputField type="checkbox" label="fast-slow-mode" v-model="fastSlowMode" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch, type Ref } from 'vue'
+import InputField from '@/shared/components/InputField.vue'
 
 const props = defineProps({
   args: Object,

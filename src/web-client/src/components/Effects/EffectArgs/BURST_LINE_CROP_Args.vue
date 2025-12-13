@@ -1,11 +1,10 @@
 <template>
   <div>
-    <input type="number" name="total-lines" id="total-lines" v-model="totalLines" />
-    <input type="checkbox" name="is-vertical" id="is-vertical" v-model="isVertical" />
-    <input
+    <InputField type="number" label="total-lines" v-model="totalLines" />
+    <InputField type="checkbox" label="is-vertical" v-model="isVertical" />
+    <InputField
       type="checkbox"
-      name="reverse-ordering"
-      id="reverse-ordering"
+      label="reverse-ordering"
       v-model="reverseOrdering"
     />
   </div>
@@ -13,6 +12,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch, type Ref } from 'vue'
+import InputField from '@/shared/components/InputField.vue'
 
 const props = defineProps({
   args: Object,

@@ -1,21 +1,24 @@
 <template>
   <div>
-    <input type="number" name="pan-x" id="pan-x" v-model="panX" />
-    <input type="number" name="pan-y" id="pan-y" v-model="panY" />
-    <input type="text" name="easing" id="easing" v-model="easing" />
+    <InputField type="number" label="pan-x" v-model="panX" />
+    <InputField type="number" label="pan-y" v-model="panY" />
+    <InputField type="text" label="easing" v-model="easing" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch, type Ref } from 'vue'
+import InputField from '@/shared/components/InputField.vue'
 
 const props = defineProps({
   args: Object,
 })
 
 onMounted(() => {
-  panX.value = props.args?.pan[0] as number
-  panY.value = props.args?.pan[1] as number
+  if (props.args?.pan) {
+    panX.value = props.args?.pan[0] as number
+    panY.value = props.args?.pan[1] as number
+  }
   easing.value = props.args?.reverse as string
 })
 
