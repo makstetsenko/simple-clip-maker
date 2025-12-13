@@ -6,10 +6,10 @@
     :style="{ height: segmentHeight + 'px', top: segmentTopPosition + 'px' }"
   >
     <div class="segment-label">
-      <div class="segment-number"># {{ index }}</div>
+      <div class="segment-number"># {{ model?.index }}</div>
       <div class="segment-time">
-        {{ secondsToTimeSpanFractionalFormat(startTime) }} -
-        {{ secondsToTimeSpanFractionalFormat(endTime) }}
+        {{ secondsToTimeSpanFractionalFormat(model?.startTime) }} -
+        {{ secondsToTimeSpanFractionalFormat(model?.endTime) }}
       </div>
     </div>
   </div>
@@ -17,34 +17,29 @@
 
 <script setup lang="ts">
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
+import type { TimelineSegmentModel } from '@/shared/models/TimelineModel'
 import { computed } from 'vue'
 
 const props = defineProps({
-  id: String,
-  index: Number,
-  startTime: Number,
-  duration: Number,
-  endTime: Number,
-  timelineDuration: Number,
   timelineHeight: Number,
-  onSegmentClick: Function,
+  timelineDuration: Number,
   selected: Boolean,
 })
-
+const model = defineModel<TimelineSegmentModel>()
 const emits = defineEmits(['onSegmentClick'])
 
 const onClick = (multiselect: boolean) => {
-  emits('onSegmentClick', props.id, multiselect)
+  emits('onSegmentClick', model.value!.id, multiselect)
 }
 
 const segmentHeight = computed(() => {
-  const scale = props.duration! / props.timelineDuration!
+  const scale = model.value!.duration! / props.timelineDuration!
   return scale * props.timelineHeight!
 })
 
 const segmentTopPosition = computed(() => {
   const topPosition =
-    ((props.startTime || 0) * (props.timelineHeight || 0)) / (props.timelineDuration || 0)
+    ((model.value!.startTime || 0) * (props.timelineHeight || 0)) / (props.timelineDuration || 0)
   return topPosition
 })
 </script>

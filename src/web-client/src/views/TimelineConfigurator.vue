@@ -1,67 +1,35 @@
 <template>
   <h3>Timeline config</h3>
   <button @click="onLoadTimelineClick">Load timeline</button>
+  <button @click="onBuildClick">Build timeline</button>
 
-  <TimelineItem
-    v-if="timelineProps"
-    :fps="timelineProps.fps"
-    :duration="timelineProps.duration"
-    :effects="timelineProps.effects"
-    :segments="timelineProps.segments"
-  />
+  <TimelineItem v-if="timelineItem" v-model="timelineItem" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import apiClient from '../services/apiClient'
 import TimelineItem from '../components/Timeline/TimelineItem.vue'
-import { type TimelineItemProps } from '../components/Timeline/TimelineItem.vue'
-import { type TimelineConfig } from '../models/Timeline'
+import type { TimelineModel } from '@/shared/models/TimelineModel'
+import { mapTimelineModel } from '@/shared/mappers/timelineModelMapper'
+import { mapTimeline } from '@/shared/mappers/timelineMapper'
 
-const timelineConfig: Ref<TimelineConfig | null> = ref<TimelineConfig | null>(null)
-
-const timelineProps = computed<TimelineItemProps | null>(() => {
-  if (!timelineConfig.value) return null
-
-  return {
-    fps: timelineConfig.value.fps,
-    duration: timelineConfig.value.duration,
-    effects: timelineConfig.value.effects.map((x) => ({
-      id: x.id,
-      method: x.method,
-      args: x.args,
-      effectType: x.effect_type,
-    })),
-    segments: timelineConfig.value.segments.map((x) => ({
-      id: x.id,
-      duration: x.duration,
-      endTime: x.end_time,
-      startTime: x.start_time,
-      index: x.index,
-      splitScreen: x.is_split_screen,
-      videos: x.videos.map((v) => ({
-        id: x.id,
-        path: v.path,
-        startTime: v.start_time,
-      })),
-      effects: x.effects?.map((e) => ({
-        id: x.id,
-        effectType: e.effect_type,
-        method: e.method,
-        args: e.args,
-      })),
-    })),
-  } as TimelineItemProps
-})
+const timelineItem: Ref<TimelineModel | null> = ref<TimelineModel | null>(null)
 
 async function onLoadTimelineClick() {
   const url = '/api/timeline/config'
 
   try {
     const resp = await apiClient.get(url)
-    timelineConfig.value = resp.data
+    timelineItem.value = mapTimelineModel(resp.data)
   } catch (error) {
     console.error(error)
   }
+}
+
+function onBuildClick() {
+  if (!timelineItem.value) return
+  const timelineObj = mapTimeline(timelineItem.value)
+  console.log(timelineObj)
 }
 </script>

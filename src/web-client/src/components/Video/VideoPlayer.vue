@@ -3,7 +3,6 @@
     <video-player
       :src="videoUri"
       :controls="false"
-      :control-bar="false"
       :width="400"
       :muted="true"
       :loop="true"
@@ -13,6 +12,7 @@
 
     <VideoPlayerTimelineBar
       :duration="state?.duration"
+      :playback-time="state?.currentTime"
       :segment-start-time="playheadTime"
       :segment-duration="segmentDuration"
       @on-seeked="onVideoTimelineSeeked"
@@ -33,7 +33,6 @@ import apiClient from '@/services/apiClient'
 import { VideoPlayer, type VideoPlayerState } from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
 import videojs from 'video.js'
-import { config } from 'process'
 import VideoPlayerTimelineBar from './VideoPlayerTimelineBar.vue'
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 

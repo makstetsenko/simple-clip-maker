@@ -1,57 +1,37 @@
 <template>
   <div class="segment-config">
     <h3>
-      Seg: #{{ index }} ({{ secondsToTimeSpanFractionalFormat(startTime) }} -
-      {{ secondsToTimeSpanFractionalFormat(endTime) }})
+      Seg: #{{ model?.index }} ({{ secondsToTimeSpanFractionalFormat(model?.startTime) }} -
+      {{ secondsToTimeSpanFractionalFormat(model?.endTime) }})
     </h3>
 
     <div>
       Videos
-      <div :key="v.id" v-for="v in videos">
+      <div :key="v.id" v-for="v in model?.videos">
         <div>{{ v.startTime }} - {{ v.path }}</div>
         <VideoPlayer
           :videoPath="v.path"
           :segmentStartTime="v.startTime"
-          :segmentDuration="duration"
+          :segmentDuration="model?.duration"
         />
       </div>
     </div>
 
-    <div v-if="effects">
+    <div v-if="model?.effects">
       Effects
-      <div :key="e.id" v-for="e in effects">{{ e.effectType }}.{{ e.method }}({{ e.args }})</div>
+
+      <EffectsSelector v-model="model!.effects" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 import VideoPlayer from '../Video/VideoPlayer.vue'
+import EffectsSelector from '../Effects/EffectsSelector.vue'
+import type { TimelineSegmentModel } from '@/shared/models/TimelineModel'
+import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 
-interface SegmentConfigProps {
-  id: string
-  index: number
-  startTime: number
-  duration: number
-  endTime: number
-  videos: SegmentVideoProps[]
-  effects: SegmentEffectProps[] | null | undefined
-}
-
-interface SegmentEffectProps {
-  id: string
-  effectType: string
-  method: string
-  args: object | null
-}
-
-interface SegmentVideoProps {
-  id: string
-  path: string
-  startTime: number
-}
-
-defineProps<SegmentConfigProps>()
+const model = defineModel<TimelineSegmentModel>()
 </script>
 
 <style scoped>

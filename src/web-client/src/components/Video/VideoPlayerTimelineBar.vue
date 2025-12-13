@@ -23,7 +23,11 @@
 
         <div class="playhead" :style="{ left: playheadX + 'px' }">
           <div class="playhead-label">{{ secondsToTimeSpanFractionalFormat(playheadTime) }}</div>
-          <div class="playhead-line"></div>
+          <div class="playhead-line" />
+        </div>
+
+        <div class="playback-head" :style="{ left: playbackHeadX + 'px' }">
+          <div class="playback-line" />
         </div>
       </div>
     </div>
@@ -38,6 +42,7 @@ const props = defineProps({
   duration: Number,
   segmentStartTime: Number,
   segmentDuration: Number,
+  playbackTime: Number,
 })
 
 const emits = defineEmits(['onSeeked', 'onPlay', 'onPause'])
@@ -52,12 +57,27 @@ watch(
   },
 )
 
+watch(
+  () => props.playbackTime,
+  (time) => {
+    if (!timelineAreaRef.value) return
+    if (!time) return
+    if (!props.duration) return
+
+    const rect = timelineAreaRef.value.getBoundingClientRect()
+
+    playbackHeadX.value = (time / props.duration) * rect.width
+  },
+)
+
 const isPlaying: Ref<boolean> = ref(false)
 
 const timelineAreaRef = useTemplateRef<HTMLElement>('timeline-area')
 
 const playheadX: Ref<number> = ref(0)
 const playheadTime: Ref<number> = ref(0)
+
+const playbackHeadX: Ref<number> = ref(0)
 
 const segmentWidth = computed(() => {
   if (!timelineAreaRef.value) return
@@ -184,6 +204,14 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   background: #ff0000;
 }
 
+.playback-head {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  background: #1c0000;
+}
+
 .playhead-label {
   position: absolute;
   top: -30px;
@@ -200,5 +228,15 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   transform: translateX(-50%);
   width: 6px;
   background: #ff0000;
+}
+
+.playback-line {
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: #1c0000;
 }
 </style>

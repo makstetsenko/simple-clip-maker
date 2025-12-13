@@ -1,23 +1,20 @@
 <template>
   <div class="timeline-item" @click="onMouseClick">
-    <div>FPS: {{ props.fps }}</div>
-    <div>Duration: {{ props.duration }}</div>
+    <div>FPS: {{ timelineModel!.fps }}</div>
+    <div>Duration: {{ timelineModel!.duration }}</div>
 
-    <div>
+    <div @mouseenter="onMouseEnterTimeline" @mouseleave="onMouseLeaveTimeline">
       Global Effects
-
-      <div :key="effect.effectType" v-for="effect in props.effects">
-        - {{ effect.effectType }}.{{ effect.method }}({{ effect.args }})
-      </div>
+      <EffectsSelector v-model="timelineModel!.effects!" />
     </div>
 
-    <div v-if="selectedSegmentIds.size > 0">
+    <div v-if="selectedSegments.length > 0">
       <div>Merge Tools</div>
       <div>
-        <button @click="splitSelectedSegment" v-if="selectedSegmentIds.size == 1">
+        <button @click="splitSelectedSegment" v-if="selectedSegments.length == 1">
           Split segment
         </button>
-        <button @click="mergeSelectedSegments" v-if="selectedSegmentIds.size > 1">
+        <button @click="mergeSelectedSegments" v-if="selectedSegments.length > 1">
           Merge selected segments
         </button>
       </div>
@@ -27,49 +24,26 @@
       <div class="timeline-container">
         <div class="timeline no-select" :style="{ height: timelineHeight + 'px' }">
           <TimelineSegment
-          v-for="s in timelineSegments"
-          :key="s.id"
-          :id="s.id"
-          :index="s.index"
-          :startTime="s.startTime"
-          :duration="s.duration"
-          :endTime="s.endTime"
-          :timelineDuration="props.duration"
-          :timelineHeight="timelineHeight"
-          :selected="selectedSegmentIds.has(s.id)"
-          @onSegmentClick="onSegmentClick"
-          @mouseenter="onMouseEnterTimeline"
-          @mouseleave="onMouseLeaveTimeline"
+            v-for="(s, i) in timelineModel!.segments"
+            :key="s.id"
+            v-model="timelineModel!.segments[i]"
+            :timelineHeight="3000"
+            :timelineDuration="timelineModel!.duration"
+            :selected="selectedSegments.some((x) => x.id === s.id)"
+            @onSegmentClick="onSegmentClick"
+            @mouseenter="onMouseEnterTimeline"
+            @mouseleave="onMouseLeaveTimeline"
           />
         </div>
       </div>
 
       <div class="segment-config-container">
         <SegmentConfig
+          v-for="(s, i) in selectedSegments"
+          :key="s.id"
+          v-model="selectedSegments[i]"
           @mouseenter="onMouseEnterTimeline"
           @mouseleave="onMouseLeaveTimeline"
-          v-for="s in selectedSegments"
-          :key="s.id"
-          :id="s.id"
-          :index="s.index"
-          :startTime="s.startTime"
-          :endTime="s.endTime"
-          :duration="s.duration"
-          :effects="
-            s.effects?.map((x) => ({
-              id: x.id,
-              method: x.method,
-              effectType: x.effectType,
-              args: x.args,
-            }))
-          "
-          :videos="
-            s.videos.map((x) => ({
-              id: x.id,
-              path: x.path,
-              startTime: x.startTime,
-            }))
-          "
         />
       </div>
     </div>
@@ -77,75 +51,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import TimelineSegment from './TimelineSegment.vue'
 import SegmentConfig from './SegmentConfig.vue'
+import EffectsSelector from '../Effects/EffectsSelector.vue'
+import type {
+  EffectModel,
+  SegmentVideoModel,
+  TimelineModel,
+  TimelineSegmentModel,
+} from '@/shared/models/TimelineModel'
 
-export interface TimelineItemProps {
-  fps: number
-  duration: number
-  effects: TimelineSegmentEffectProps[] | null | undefined
-  segments: TimelineSegmentProps[]
-}
+const timelineModel = defineModel<TimelineModel>()
 
-interface TimelineSegmentProps {
-  id: string
-  index: number
-  startTime: number
-  duration: number
-  endTime: number
-  splitScreen: boolean
-  effects: TimelineSegmentEffectProps[] | null
-  videos: TimelineSegmentVideoProps[]
-}
-
-interface TimelineSegmentEffectProps {
-  id: string
-  effectType: string
-  method: string
-  args: object | null
-}
-
-interface TimelineSegmentVideoProps {
-  id: string
-  path: string
-  startTime: number
-}
-
-const props = defineProps<TimelineItemProps>()
-
-const timelineSegments: Ref<TimelineSegmentProps[]> = ref([...props.segments])
-
+const selectedSegments: Ref<TimelineSegmentModel[]> = ref([])
 const isMouseOverTimeline: Ref<boolean> = ref(false)
-
-const selectedSegmentIds: Ref<Set<string>> = ref(new Set<string>())
-
-const selectedSegments = computed<TimelineSegmentProps[]>(() => {
-  if (selectedSegmentIds.value.size == 0) {
-    return []
-  }
-
-  return timelineSegments.value.filter((x) => selectedSegmentIds.value.has(x.id))
-})
 
 const onMouseClick = () => {
   if (isMouseOverTimeline.value) {
     return
   }
 
-  selectedSegmentIds.value.clear()
+  selectedSegments.value.splice(0, selectedSegments.value.length)
 }
 
 const onSegmentClick = (segmentId: string | null, multiselect: boolean) => {
   if (!segmentId) {
     return
   }
-
   if (!multiselect) {
-    selectedSegmentIds.value.clear()
+    selectedSegments.value.splice(0, selectedSegments.value.length)
   }
-  selectedSegmentIds.value.add(segmentId)
+  const index = timelineModel.value!.segments.findIndex((x) => x.id === segmentId)!
+  selectedSegments.value.push(timelineModel.value!.segments[index]!)
 }
 
 const onMouseEnterTimeline = () => {
@@ -164,7 +103,7 @@ const splitSelectedSegment = () => {
   const middleTime = segment.startTime + segment.duration / 2
   const halfDuration = segment.duration / 2
 
-  const newSegment: TimelineSegmentProps = {
+  const newSegment: TimelineSegmentModel = {
     id: uuidv4(),
     index: segment.index + 1,
     startTime: middleTime,
@@ -178,12 +117,12 @@ const splitSelectedSegment = () => {
   segment.endTime = middleTime
   segment.duration = halfDuration
 
-  timelineSegments.value.splice(newSegment.index, 0, newSegment)
+  timelineModel.value!.segments.splice(newSegment.index, 0, newSegment)
 
-  for (let i = 0; i < timelineSegments.value.length; i++) {
-    timelineSegments.value[i]!.index = i
+  for (let i = 0; i < timelineModel.value!.segments.length; i++) {
+    timelineModel.value!.segments[i]!.index = i
   }
-  selectedSegmentIds.value.clear()
+  selectedSegments.value.splice(0, selectedSegments.value.length)
 }
 
 const mergeSelectedSegments = () => {
@@ -192,7 +131,7 @@ const mergeSelectedSegments = () => {
   const endTime = sortedSegments[sortedSegments.length - 1]!.endTime
 
   const videos = sortedSegments.reduce(
-    (video_items: TimelineSegmentVideoProps[], seg: TimelineSegmentProps) => {
+    (video_items: SegmentVideoModel[], seg: TimelineSegmentModel) => {
       video_items.push(...seg.videos)
       return video_items
     },
@@ -200,14 +139,14 @@ const mergeSelectedSegments = () => {
   )
 
   const effects = sortedSegments.reduce(
-    (effect_items: TimelineSegmentEffectProps[], seg: TimelineSegmentProps) => {
+    (effect_items: EffectModel[], seg: TimelineSegmentModel) => {
       if (seg.effects) effect_items.push(...seg.effects)
       return effect_items
     },
     [],
   )
 
-  const newSegment: TimelineSegmentProps = {
+  const newSegment: TimelineSegmentModel = {
     id: uuidv4(),
     index: sortedSegments[0]!.index,
     startTime: startTime,
@@ -218,12 +157,12 @@ const mergeSelectedSegments = () => {
     videos: videos,
   }
 
-  timelineSegments.value.splice(sortedSegments[0]!.index, sortedSegments.length, newSegment)
+  timelineModel.value!.segments.splice(sortedSegments[0]!.index, sortedSegments.length, newSegment)
 
-  for (let i = 0; i < timelineSegments.value.length; i++) {
-    timelineSegments.value[i]!.index = i
+  for (let i = 0; i < timelineModel.value!.segments.length; i++) {
+    timelineModel.value!.segments[i]!.index = i
   }
-  selectedSegmentIds.value.clear()
+  selectedSegments.value.splice(0, selectedSegments.value.length)
 }
 </script>
 

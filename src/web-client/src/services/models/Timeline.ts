@@ -1,30 +1,30 @@
-export type TimelineConfig = {
+export type Timeline = {
   fps: number
   duration: number
-  effects: TimelineSegmentEffect[]
+  effects: Effect[]
   segments: TimelineSegment[]
 }
 
-export type TimelineSegmentEffect = {
-  id: string,
+export type Effect = {
+  id: string
   effect_type: string
   method: string
   args: object | null
 }
 
 export type TimelineSegment = {
-  id: string,
+  id: string
   index: number
   start_time: number
   duration: number
   end_time: number
   is_split_screen: boolean
-  effects: TimelineSegmentEffect[] | null
-  videos: TimelineSegmentVideo[]
+  effects: Effect[] | null
+  videos: SegmentVideo[]
 }
 
-export type TimelineSegmentVideo = {
-  id: string,
+export type SegmentVideo = {
+  id: string
   path: string
   start_time: number
 }
