@@ -12,7 +12,7 @@ export interface TimelineSegmentModel {
   duration: number
   endTime: number
   splitScreen: boolean
-  effects: EffectModel[] | null
+  effects: EffectModel[] | null | undefined
   videos: SegmentVideoModel[]
 }
 

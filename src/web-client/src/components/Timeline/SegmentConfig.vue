@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <div v-if="model?.effects">
+    <div>
       Effects
 
       <EffectsSelector v-model="model!.effects" />

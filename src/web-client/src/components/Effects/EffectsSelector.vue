@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <div v-if="effectItems">
     <EffectItem
       v-for="(e, i) in effectItems"
       :key="e.id"
-      v-model="effectItems![i]!"
+      v-model="effectItems[i]"
       @on-remove="onRemove"
     />
   </div>
@@ -16,7 +16,7 @@ import EffectItem from './EffectItem.vue'
 import { EffectMethod, EffectType, type EffectModel } from '@/shared/models/TimelineModel'
 import { v4 as uuidv4 } from 'uuid'
 
-const effectItems = defineModel<EffectModel[]>()
+const effectItems = defineModel<EffectModel[] | null>()
 
 function onRemove(id: string) {
   const index = effectItems.value!.findIndex((x) => x.id === id)
@@ -24,7 +24,11 @@ function onRemove(id: string) {
 }
 
 function onNewClick() {
-  effectItems.value?.push({
+  if (effectItems.value === null || effectItems.value === undefined) {
+    effectItems.value = []
+  }
+
+  effectItems.value.push({
     id: uuidv4(),
     method: EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE,
     effectType: EffectType.Crop,
