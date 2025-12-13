@@ -2,14 +2,11 @@
   <div :style="{ width: state?.width + 'px' }">
     <video-player
       :src="videoUri"
-      :controls="true"
+      :controls="false"
+      :control-bar="false"
       :width="400"
       :muted="true"
       :loop="true"
-      :inactivity-timeout="60 * 1000"
-      :disable-picture-in-picture="true"
-      :playback-rates="[0.75, 1, 1.25, 1.5, 2, 4]"
-      :control-bar="false"
       @mounted="handleMounted"
       @timeupdate="onTimeUpdated"
     />

@@ -172,7 +172,8 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   position: absolute;
   top: -12px;
   bottom: -12px;
-  background: #7f91a9;
+  background: #a97fa85b;
+  border: 2px rgb(88, 104, 194) solid;
 }
 
 .playhead {
