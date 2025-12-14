@@ -55,4 +55,3 @@ async def import_media(project_name: str, files: list[UploadFile]):
                     out.write(chunk)
         finally:
             await media_file.close()
-

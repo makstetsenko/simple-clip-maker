@@ -104,9 +104,9 @@ class VideoProjectSetup:
 
     def to_dict(self) -> dict:
         return {
-            "project_name": self.setup.project_name,
-            "fps": self.setup.fps,
-            "resolution": [self.setup.resolution.width, self.setup.resolution.height],
+            "project_name": self.project_name,
+            "fps": self.fps,
+            "resolution": [self.resolution.width, self.resolution.height],
         }
 
     @staticmethod

@@ -18,17 +18,29 @@ async def get_timeline(project_name: str):
 
     raise HTTPException(status_code=404, detail=f"Timeline for {project_name} does not exists")
 
+
 @router.post("/")
 async def create_timeline(project_name: str):
     raise_error_if_project_does_not_exists(project_name)
 
     project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
     project = VideoProject(project_setup=project_setup)
-    
+
     timeline = project.analyze_source_and_generate_timeline()
     timeline.save(project_setup.timeline_path)
     return timeline.to_dict()
 
+
+@router.post("/upsert")
+async def upsert_timeline(project_name: str, request: dict):
+    raise_error_if_project_does_not_exists(project_name)
+
+    project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
+
+    timeline: TimelineConfig = TimelineConfig.from_dict(request)
+    timeline.save(project_setup.timeline_path)
+
+    return timeline.to_dict()
 
 
 def raise_error_if_project_does_not_exists(project_name):
