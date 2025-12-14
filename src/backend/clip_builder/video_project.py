@@ -5,6 +5,7 @@ import logging
 import os
 import random
 import shutil
+from typing import Self
 import uuid
 
 import yaml
@@ -62,17 +63,18 @@ def get_first_path(input_dir_path, file_ext: list[str]) -> str | None:
 
 
 class VideoProjectSetup:
-    pass
+    setup_dir_path = f"./output/setups"
 
-class VideoProject:
     def __init__(
         self,
         resolution: tuple[int, int],
         fps: int,
+        project_name: str | None = None,
         source_files_dir_path: str | None = None,
     ):
-        self.id = str(uuid.uuid4())
-        self.project_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.project_name = (
+            datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") if project_name is None else project_name
+        )
 
         self.resolution = VideoResolution(resolution)
         self.fps = fps
@@ -80,41 +82,105 @@ class VideoProject:
         self.project_dir_path = f"./output/projects/{self.project_name}"
         self.runtime_dir_path = f"{self.project_dir_path}/runtime"
         self.analysis_dir_path = f"{self.runtime_dir_path}/analysis"
+        self.timeline_path = f"{self.project_dir_path}/timeline.yaml"
         self.source_files_dir_path = (
             f"{self.project_dir_path}/source" if source_files_dir_path is None else source_files_dir_path
         )
 
-        self.json_cache: JsonCache = JsonCache()
-
         self.audio_path = get_first_path(self.source_files_dir_path, audio_exts)
         self.videos_path_list = get_path_list(self.source_files_dir_path, video_exts)
 
-        self.prepare_dirs()
+    def setup_dirs(self):
+        shutil.rmtree(self.project_dir_path, ignore_errors=True)
+        os.makedirs(self.project_dir_path)
+        os.makedirs(self.runtime_dir_path)
+        os.makedirs(self.analysis_dir_path)
+        os.makedirs(self.source_files_dir_path, exist_ok=True)
+        os.makedirs(self.setup_dir_path, exist_ok=True)
+
+    @staticmethod
+    def get_setup_config_path(project_name: str) -> str:
+        return f"{VideoProjectSetup.setup_dir_path}/{project_name}.yaml"
+
+    def to_dict(self) -> dict:
+        return {
+            "project_name": self.setup.project_name,
+            "fps": self.setup.fps,
+            "resolution": [self.setup.resolution.width, self.setup.resolution.height],
+        }
+
+    @staticmethod
+    def from_dict(value: dict) -> Self:
+        resolution = value["resolution"]
+
+        return VideoProjectSetup(
+            resolution=(resolution[0], resolution[1]),
+            fps=value["fps"],
+            project_name=value["project_name"],
+        )
+
+    def save(self):
+        setup_config_path = VideoProjectSetup.get_setup_config_path(self.setup.project_name)
+        with open(setup_config_path, "w") as f:
+            f.write(yaml.safe_dump(self.to_dict(), indent=4, sort_keys=False))
+
+    @staticmethod
+    def load(project_name: str) -> Self:
+        setup_config_path = VideoProjectSetup.get_setup_config_path(project_name)
+        with open(setup_config_path, "r") as f:
+            value = yaml.safe_load(f)
+            return VideoProjectSetup.from_dict(value)
+
+
+class VideoProject:
+    def __init__(
+        self,
+        resolution: tuple[int, int] | None = None,
+        fps: int | None = None,
+        source_files_dir_path: str | None = None,
+        project_setup: VideoProjectSetup | None = None,
+    ):
+
+        self.setup = (
+            VideoProjectSetup(
+                project_name=None,
+                fps=fps,
+                resolution=resolution,
+                source_files_dir_path=source_files_dir_path,
+            )
+            if project_setup is None
+            else project_setup
+        )
+
+        self.json_cache: JsonCache = JsonCache()
+
+        if project_setup is None:
+            self.setup.setup_dirs()
 
     def get_clip_builder(self) -> VideoClipBuilder:
         return VideoClipBuilder(
-            fps=self.fps,
-            resolution=self.resolution,
-            temp_path=self.runtime_dir_path,
+            fps=self.setup.fps,
+            resolution=self.setup.resolution,
+            temp_path=self.setup.runtime_dir_path,
         )
 
     def save_clip_with_audio(self, clip_path):
-        output_clip_path = f"{self.project_dir_path}/output.mp4"
+        output_clip_path = f"{self.setup.project_dir_path}/output.mp4"
 
         logger.info(f"Saving clip {output_clip_path}")
 
         clip = VideoFileClip(clip_path)
-        clip.write_videofile(output_clip_path, audio=self.audio_path, audio_codec="aac", fps=self.fps)
+        clip.write_videofile(output_clip_path, audio=self.setup.audio_path, audio_codec="aac", fps=self.setup.fps)
         clip.close()
 
     def get_audio_analysis(self) -> AudioAnalyzeResult:
-        logger.info(f"Analyzing audio {self.get_file_name(self.audio_path)}")
+        logger.info(f"Analyzing audio {self.get_file_name(self.setup.audio_path)}")
 
-        cache_key = self.get_cache_key_from_path(self.audio_path)
+        cache_key = self.get_cache_key_from_path(self.setup.audio_path)
         cached_value = self.json_cache.get(cache_key)
 
         if cached_value is None:
-            analysis = analyze_music_for_editing(self.audio_path, similarity_threshold=0.6)
+            analysis = analyze_music_for_editing(self.setup.audio_path, similarity_threshold=0.6)
 
             self.json_cache.set(cache_key, analysis.to_json())
 
@@ -125,7 +191,7 @@ class VideoProject:
     def get_video_analysis(self) -> list[VideoNode]:
         res: list[VideoNode] = []
 
-        for i, p in enumerate(self.videos_path_list):
+        for i, p in enumerate(self.setup.videos_path_list):
             logger.info(f"Analyzing for video {self.get_file_name(p)}")
 
             cache_key = self.get_cache_key_from_path(p)
@@ -155,7 +221,7 @@ class VideoProject:
 
         return res
 
-    def get_default_timeline_config(self) -> TimelineConfig:
+    def analyze_source_and_generate_timeline(self) -> TimelineConfig:
         audio_analysis = self.get_audio_analysis()
         video_analysis = self.get_video_analysis()
 
@@ -167,7 +233,7 @@ class VideoProject:
         for beat_segment in audio_analysis.beat_segments:
             start_time = self.get_video_start_time(video_node, beat_segment)
 
-            if video_node.resolution.matches_aspect_ratio(self.resolution):
+            if video_node.resolution.matches_aspect_ratio(self.setup.resolution):
 
                 timeline_segments.append(
                     TimelineSegmentConfig(
@@ -204,8 +270,8 @@ class VideoProject:
             video_node = video_node.next
 
         return TimelineConfig(
-            size=self.resolution.size,
-            fps=self.fps,
+            size=self.setup.resolution.size,
+            fps=self.setup.fps,
             duration=timeline_segments[-1].end_time,
             segments=timeline_segments,
             effects=[
@@ -230,11 +296,6 @@ class VideoProject:
             ],
         )
 
-    def load_timeline_config(self, config_path):
-        logger.info(f"Load timeline config {config_path}")
-        with open(config_path, "r") as f:
-            return TimelineConfig.from_dict(value=yaml.safe_load(f))
-
     @staticmethod
     def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
         scene: SceneInfo = random.choice(video_node.scenes)
@@ -245,24 +306,13 @@ class VideoProject:
     def get_file_name(path: str):
         return path.split("/")[-1]
 
-    def prepare_dirs(self):
-        shutil.rmtree(self.project_dir_path, ignore_errors=True)
-        os.makedirs(self.project_dir_path)
-        os.makedirs(self.runtime_dir_path)
-        os.makedirs(self.analysis_dir_path)
-        os.makedirs(self.source_files_dir_path, exist_ok=True)
-
     def store_analysis_to_temp(self, audio_analysis, video_analysis):
         for n in video_analysis:
-            with open(f"{self.analysis_dir_path}/video_{n.name}.json", "w") as f:
+            with open(f"{self.setup.analysis_dir_path}/video_{n.name}.json", "w") as f:
                 f.write(json.dumps(n.to_json(), indent=4, sort_keys=False))
 
-        with open(f"{self.analysis_dir_path}/audio_{self.get_file_name(self.audio_path)}.json", "w") as f:
+        with open(f"{self.setup.analysis_dir_path}/audio_{self.get_file_name(self.setup.audio_path)}.json", "w") as f:
             f.write(json.dumps(audio_analysis.to_json(), indent=4, sort_keys=False))
-
-    def store_timeline_config(self, config: TimelineConfig):
-        with open(f"{self.project_dir_path}/timeline_config.yaml", "w") as f:
-            f.write(yaml.dump(config.to_dict(), sort_keys=False, indent=2))
 
     @staticmethod
     def get_cache_key_from_path(path: str):

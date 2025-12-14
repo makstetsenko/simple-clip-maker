@@ -1,3 +1,4 @@
+from src.backend.clip_builder.timeline_config import TimelineConfig
 from .video_project import VideoProject
 
 
@@ -15,12 +16,12 @@ async def build_from_cli(
 
     # Use config as separate object to be able to load it from external file
     timeline_config = (
-        project.get_default_timeline_config()
+        project.analyze_source_and_generate_timeline()
         if timeline_config_path is None
-        else project.load_timeline_config(timeline_config_path)
+        else TimelineConfig.load(timeline_config_path)
     )
 
-    project.store_timeline_config(timeline_config)
+    timeline_config.save(project.setup.timeline_path)
 
     clip_path = await clip_builder.build_clip(timeline_config)
 

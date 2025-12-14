@@ -327,10 +327,10 @@ def build_effect_args(effectType: EffectType, effectMethod: EffectMethod, value:
     if effectType == EffectType.FLASH:
 
         if effectMethod == EffectMethod.FLASH:
-            return EffectArgs.ZOOM.FLASH.from_dict(value)
+            return EffectArgs.FLASH.FLASH.from_dict(value)
 
         if effectMethod == EffectMethod.BURST_FLASH:
-            return EffectArgs.ZOOM.BURST_FLASH.from_dict(value)
+            return EffectArgs.FLASH.BURST_FLASH.from_dict(value)
 
     if effectType == EffectType.CROP:
 

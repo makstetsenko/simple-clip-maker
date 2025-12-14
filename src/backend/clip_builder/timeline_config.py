@@ -1,7 +1,12 @@
 from dataclasses import dataclass
+import logging
 from typing import Self
 
+import yaml
+
 from .effects_descriptor import EffectArgsBase, EffectMethod, EffectType, build_effect_args
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -141,3 +146,13 @@ class TimelineConfig:
             fps=value["fps"],
             size=(value["size"][0], value["size"][1]),
         )
+
+    def save(self, path: str):
+        with open(path, "w") as f:
+            f.write(yaml.dump(self.to_dict(), sort_keys=False, indent=2))
+
+    @staticmethod
+    def load(path):
+        logger.info(f"Load timeline config {path}")
+        with open(path, "r") as f:
+            return TimelineConfig.from_dict(value=yaml.safe_load(f))
