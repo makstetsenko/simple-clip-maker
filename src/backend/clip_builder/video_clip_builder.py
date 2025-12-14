@@ -8,12 +8,12 @@ import yaml
 from moviepy import ColorClip, VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
 from tqdm import tqdm
 
-from .effect_presets import crop  as crop_effect_preset
-from .effect_presets import flash  as flash_effect_preset
-from .effect_presets import pan  as pan_effect_preset
-from .effect_presets import zoom  as zoom_effect_preset
-from .effects import crop  as crop_effects
-from .effects import playback  as playback_effects
+from .effect_presets import crop as crop_effect_preset
+from .effect_presets import flash as flash_effect_preset
+from .effect_presets import pan as pan_effect_preset
+from .effect_presets import zoom as zoom_effect_preset
+from .effects import crop as crop_effects
+from .effects import playback as playback_effects
 from .effects.split_screen import split_screen_clips, get_positions_from_layout, SplitScreenCriteria
 from .timeline_config import TimelineConfig, EffectType, EffectMethod, VideoSegmentEffect
 from .video_project import TimelineSegmentConfig

@@ -1,11 +1,9 @@
 import glob
 
 import argparse
-from src.backend.clip_builder.clip_builder_factory import build as build_clip
+from src.backend.clip_builder.clip_builder_factory import build_from_cli as build_clip
 import logging
 import asyncio
-
-movie_formats = ["m4v", "mov", "mp4"]
 
 
 def get_args():
@@ -41,7 +39,6 @@ def get_args():
 
     return parser.parse_args()
 
-
 def get_first_path(args, file_ext: list[str]) -> str | None:
     timeline_config_path_templates = [args.input_dir_path.rstrip("/") + "/*." + x for x in file_ext]
 
@@ -50,7 +47,6 @@ def get_first_path(args, file_ext: list[str]) -> str | None:
             return g
 
     return None
-
 
 async def main():
     logging.basicConfig(
@@ -61,15 +57,11 @@ async def main():
 
     args = get_args()
 
-    music_path_template = get_first_path(args, file_ext=["mp3", "m4a"])
 
     video_resolution_items = args.video_resolution.split("x")
+    
     await build_clip(
-        audio_file_path_template=music_path_template,
-        store_timeline_clips=args.save_timeline_clips,
-        video_files_path_template=",".join(
-            [args.input_dir_path.rstrip("/") + "/*." + x for x in movie_formats + [f.upper() for f in movie_formats]]
-        ),
+        input_dir=args.input_dir_path,
         video_resolution=(
             int(video_resolution_items[0]),
             int(video_resolution_items[1]),

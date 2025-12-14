@@ -36,30 +36,58 @@ from .effects_descriptor import EffectArgs
 
 logger = logging.getLogger(__name__)
 
+audio_exts = ["mp3", "m4a"]
+video_exts = ["m4v", "mov", "mp4"]
+
+
+def get_path_templates(input_dir_path: str, file_ext: list[str]):
+    path_prefix = input_dir_path.rstrip("/") + "/*."
+    return [path_prefix + x for x in file_ext] + [path_prefix + x.upper() for x in file_ext]
+
+
+def get_path_list(input_dir_path, file_ext: list[str]) -> str | None:
+    timeline_config_path_templates = get_path_templates(input_dir_path, file_ext)
+
+    path_list = []
+    for t in timeline_config_path_templates:
+        for g in glob.glob(t):
+            path_list.append(g)
+
+    return path_list
+
+
+def get_first_path(input_dir_path, file_ext: list[str]) -> str | None:
+    path_list = get_path_list(input_dir_path, file_ext)
+    return None if len(path_list) == 0 else path_list[0]
+
+
+class VideoProjectSetup:
+    pass
 
 class VideoProject:
     def __init__(
         self,
         resolution: tuple[int, int],
         fps: int,
-        video_files_path_template: str,
-        audio_file_path_template: str,
+        source_files_dir_path: str | None = None,
     ):
-        self.resolution = VideoResolution(resolution)
-        self.fps = fps
+        self.id = str(uuid.uuid4())
         self.project_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+        self.resolution = VideoResolution(resolution)
+        self.fps = fps
+
         self.project_dir_path = f"./output/projects/{self.project_name}"
-        self.temp_dir_path = f"{self.project_dir_path}/temp"
-        self.temp_analysis_dir_path = f"{self.temp_dir_path}/analysis"
+        self.runtime_dir_path = f"{self.project_dir_path}/runtime"
+        self.analysis_dir_path = f"{self.runtime_dir_path}/analysis"
+        self.source_files_dir_path = (
+            f"{self.project_dir_path}/source" if source_files_dir_path is None else source_files_dir_path
+        )
 
         self.json_cache: JsonCache = JsonCache()
 
-        self.audio_path = glob.glob(audio_file_path_template)[0]
-
-        self.videos_path_list = []
-        for p in video_files_path_template.split(","):
-            self.videos_path_list += glob.glob(p)
+        self.audio_path = get_first_path(self.source_files_dir_path, audio_exts)
+        self.videos_path_list = get_path_list(self.source_files_dir_path, video_exts)
 
         self.prepare_dirs()
 
@@ -67,7 +95,7 @@ class VideoProject:
         return VideoClipBuilder(
             fps=self.fps,
             resolution=self.resolution,
-            temp_path=self.temp_dir_path,
+            temp_path=self.runtime_dir_path,
         )
 
     def save_clip_with_audio(self, clip_path):
@@ -220,15 +248,16 @@ class VideoProject:
     def prepare_dirs(self):
         shutil.rmtree(self.project_dir_path, ignore_errors=True)
         os.makedirs(self.project_dir_path)
-        os.makedirs(self.temp_dir_path)
-        os.makedirs(self.temp_analysis_dir_path)
+        os.makedirs(self.runtime_dir_path)
+        os.makedirs(self.analysis_dir_path)
+        os.makedirs(self.source_files_dir_path, exist_ok=True)
 
     def store_analysis_to_temp(self, audio_analysis, video_analysis):
         for n in video_analysis:
-            with open(f"{self.temp_analysis_dir_path}/video_{n.name}.json", "w") as f:
+            with open(f"{self.analysis_dir_path}/video_{n.name}.json", "w") as f:
                 f.write(json.dumps(n.to_json(), indent=4, sort_keys=False))
 
-        with open(f"{self.temp_analysis_dir_path}/audio_{self.get_file_name(self.audio_path)}.json", "w") as f:
+        with open(f"{self.analysis_dir_path}/audio_{self.get_file_name(self.audio_path)}.json", "w") as f:
             f.write(json.dumps(audio_analysis.to_json(), indent=4, sort_keys=False))
 
     def store_timeline_config(self, config: TimelineConfig):

@@ -1,21 +1,14 @@
 from .video_project import VideoProject
 
 
-async def build(
-    video_files_path_template: str,
-    audio_file_path_template: str,
-    store_timeline_clips: bool,
+async def build_from_cli(
+    input_dir: str,
     video_resolution: tuple[int, int] = (1280, 720),
     fps: int = 25,
     debug: bool = False,
     timeline_config_path: str | None = None,
 ):
-    project = VideoProject(
-        resolution=video_resolution,
-        fps=fps,
-        video_files_path_template=video_files_path_template,
-        audio_file_path_template=audio_file_path_template,
-    )
+    project = VideoProject(resolution=video_resolution, fps=fps, source_files_dir_path=input_dir)
 
     clip_builder = project.get_clip_builder()
     clip_builder.set_debug(debug)
