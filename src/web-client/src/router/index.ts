@@ -1,4 +1,4 @@
-import TimelineConfigurator from '@/views/TimelineConfigurator.vue'
+import ProjectWorkspace from '@/views/ProjectWorkspace.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -6,7 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: TimelineConfigurator,
+      component: ProjectWorkspace,
     },
   ],
 })

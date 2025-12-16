@@ -1,35 +1,70 @@
 <template>
   <h3>Timeline config</h3>
-  <button @click="onLoadTimelineClick">Load timeline</button>
-  <button @click="onBuildClick">Build timeline</button>
+  <Button @click="upsertTimeline" v-if="timelineModel">Save</Button>
+  <TimelineItem v-if="timelineModel" v-model="timelineModel" />
 
-  <TimelineItem v-if="timelineItem" v-model="timelineItem" />
+  <div v-if="!timelineModel">
+    <Button @click="onGenerateTimelineClick" :loading="generateTimelineLoading"
+      >Generate timeline</Button
+    >
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, type Ref } from 'vue'
+import { onMounted, ref, watch, type Ref } from 'vue'
 import apiClient from '../services/apiClient'
 import TimelineItem from '../components/Timeline/TimelineItem.vue'
 import type { TimelineModel } from '@/shared/models/TimelineModel'
 import { mapTimelineModel } from '@/shared/mappers/timelineModelMapper'
 import { mapTimeline } from '@/shared/mappers/timelineMapper'
+import { useProjectSetupStore } from '@/stores/projectSetup'
+import Button from 'primevue/button'
 
-const timelineItem: Ref<TimelineModel | null> = ref<TimelineModel | null>(null)
+const timelineModel: Ref<TimelineModel | null> = ref<TimelineModel | null>(null)
+const projectSetupStore = useProjectSetupStore()
+const generateTimelineLoading: Ref<boolean> = ref(false)
 
-async function onLoadTimelineClick() {
-  const url = '/api/timeline/config'
+onMounted(() => {
+  reloadTimeline()
+})
+
+watch(
+  () => projectSetupStore.project,
+  () => {
+    reloadTimeline()
+  },
+)
+
+async function reloadTimeline() {
+  timelineModel.value = null
+
+  const url = `/api/${projectSetupStore.getProjectName}/timeline/`
 
   try {
     const resp = await apiClient.get(url)
-    timelineItem.value = mapTimelineModel(resp.data)
+    timelineModel.value = mapTimelineModel(resp.data)
   } catch (error) {
     console.error(error)
   }
 }
 
-function onBuildClick() {
-  if (!timelineItem.value) return
-  const timelineObj = mapTimeline(timelineItem.value)
-  console.log(timelineObj)
+async function upsertTimeline() {
+  if (!timelineModel.value) return
+  const timelineObj = mapTimeline(timelineModel.value)
+
+  const url = `/api/${projectSetupStore.getProjectName}/timeline/upsert`
+  await apiClient.post(url, timelineObj)
+}
+
+async function onGenerateTimelineClick() {
+  if (timelineModel.value) return
+
+  generateTimelineLoading.value = true
+  try {
+    await apiClient.post(`/api/${projectSetupStore.getProjectName}/timeline`)
+    await reloadTimeline()
+  } finally {
+    generateTimelineLoading.value = false
+  }
 }
 </script>

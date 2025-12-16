@@ -1,5 +1,5 @@
 export interface ProjectModel {
   name: string
-  fps: string
+  fps: number
   resolution: number[]
 }

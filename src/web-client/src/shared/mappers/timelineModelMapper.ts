@@ -13,6 +13,7 @@ export const mapTimelineModel = (timelineConfig: Timeline): TimelineModel => {
     duration: timelineConfig.duration,
     effects: timelineConfig.effects.map((x) => mapEffectModel(x)),
     segments: timelineConfig.segments.map((x) => mapSegmentModel(x)),
+    size: [...timelineConfig.size],
   } as TimelineModel
 }
 

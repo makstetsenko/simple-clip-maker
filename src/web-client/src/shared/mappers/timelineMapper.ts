@@ -13,6 +13,7 @@ export const mapTimeline = (model: TimelineModel): Timeline => {
     duration: model.duration,
     effects: model.effects?.map((x) => mapEffect(x)),
     segments: model.segments.map((x) => mapSegment(x)),
+    size: [...model.size],
   } as Timeline
 }
 

@@ -120,7 +120,7 @@ class VideoProjectSetup:
         )
 
     def save(self):
-        setup_config_path = VideoProjectSetup.get_setup_config_path(self.setup.project_name)
+        setup_config_path = VideoProjectSetup.get_setup_config_path(self.project_name)
         with open(setup_config_path, "w") as f:
             f.write(yaml.safe_dump(self.to_dict(), indent=4, sort_keys=False))
 

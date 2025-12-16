@@ -1,3 +1,4 @@
+import glob
 from pathlib import Path
 from fastapi import APIRouter, UploadFile
 
@@ -55,3 +56,11 @@ async def import_media(project_name: str, files: list[UploadFile]):
                     out.write(chunk)
         finally:
             await media_file.close()
+
+
+@router.get("/{project_name}/media")
+async def get_project_media_info(project_name: str):
+    project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
+    files = project_setup.videos_path_list + [project_setup.audio_path]
+    file_names = [Path(f).name for f in files]
+    return file_names

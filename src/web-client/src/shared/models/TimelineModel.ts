@@ -3,6 +3,7 @@ export interface TimelineModel {
   duration: number
   effects: EffectModel[] | null | undefined
   segments: TimelineSegmentModel[]
+  size: number[]
 }
 
 export interface TimelineSegmentModel {

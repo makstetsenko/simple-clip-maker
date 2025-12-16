@@ -20,6 +20,7 @@
     "@videojs-player/vue": "^1.0.0",
     "axios": "^1.13.2",
     "pinia": "^3.0.4",
+    "primeicons": "^7.0.0",
     "primevue": "^4.5.3",
     "uuid": "^13.0.0",
     "video.js": "^7.21.7",

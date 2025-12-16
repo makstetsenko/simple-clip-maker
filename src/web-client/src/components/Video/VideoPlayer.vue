@@ -49,20 +49,23 @@ const props = defineProps({
 
 onMounted(() => {
   if (player.value) {
-    player.value.currentTime(props.segmentStartTime)
+    player.value.currentTime(props.segmentStartTime!)
   }
 })
 
-const playheadTime: Ref<number> = ref(props.segmentStartTime)
+const playheadTime: Ref<number> = ref(props.segmentStartTime!)
 const segmentDuration = props.segmentDuration
 
 const videoUri = computed(() =>
   apiClient.getUri({
-    url: '/files' + props.videoPath,
+    url: `/api/media?file_path=${props.videoPath}`,
   }),
 )
 
-const handleMounted = (payload) => {
+const handleMounted = (payload: {
+  player: VideoJsPlayer | undefined
+  state: VideoPlayerState | undefined
+}) => {
   player.value = payload.player
   state.value = payload.state
 }

@@ -3,6 +3,7 @@ export type Timeline = {
   duration: number
   effects: Effect[]
   segments: TimelineSegment[]
+  size: number[]
 }
 
 export type Effect = {

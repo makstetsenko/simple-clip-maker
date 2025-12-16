@@ -24,8 +24,10 @@ import FileUpload, {
   type FileUploadUploadEvent,
 } from 'primevue/fileupload'
 
+const emits = defineEmits(['onUpload'])
+
 function onUploadClick(e: FileUploadUploaderEvent) {
-  console.log('Upload click: ', e.files)
+  emits('onUpload', e)
 }
 
 function onUploadFinished(e: FileUploadUploadEvent) {
