@@ -2,7 +2,8 @@ import glob
 from pathlib import Path
 from fastapi import APIRouter, UploadFile
 
-from backend.clip_builder.video_project import VideoProjectSetup, get_path_list
+from backend.clip_builder.timeline_config import TimelineConfig
+from backend.clip_builder.video_project import VideoProject, VideoProjectSetup, get_path_list
 from backend.endpoints.project.models import NewProjectRequest
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -64,3 +65,17 @@ async def get_project_media_info(project_name: str):
     files = project_setup.videos_path_list + [project_setup.audio_path]
     file_names = [Path(f).name for f in files]
     return file_names
+
+@router.post("/{project_name}/render")
+async def render_project(project_name: str):
+    project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
+    
+    timeline_config = TimelineConfig.load(project_setup.timeline_path)
+    project = VideoProject(project_setup=project_setup)
+    clip_builder = project.get_clip_builder()
+    
+    clip_builder.set_debug(True)
+    
+    clip_path = await clip_builder.build_clip(timeline_config)
+
+    project.save_clip_with_audio(clip_path=clip_path)

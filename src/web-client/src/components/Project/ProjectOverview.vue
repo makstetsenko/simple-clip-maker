@@ -9,9 +9,8 @@
           <Chip
             :label="
               projectSetupStore.project?.resolution[0] +
-              'px X ' +
-              projectSetupStore.project?.resolution[1] +
-              'px'
+              'x' +
+              projectSetupStore.project?.resolution[1]
             "
           />
         </AccordionContent>

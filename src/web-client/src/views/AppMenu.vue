@@ -18,6 +18,7 @@ import { onMounted, ref, type Ref } from 'vue'
 
 const recentProjects: Ref<ProjectModel[]> = ref([])
 const newProjectModalVisible: Ref<boolean> = ref(false)
+const renderingInProgress: Ref<boolean> = ref(false)
 
 const projectSetupStore = useProjectSetupStore()
 
@@ -28,6 +29,11 @@ const menuItems: Ref<MenuItem[]> = ref([
   },
   {
     label: 'Open recent',
+  },
+  {
+    label: 'Render project',
+    command: renderProject,
+    loading: renderingInProgress.value,
   },
 ])
 
@@ -69,5 +75,16 @@ async function onNewProjectCreate(project: ProjectModel) {
 
 function onProjectSelectClick(project: ProjectModel) {
   projectSetupStore.setProject(project)
+}
+
+async function renderProject() {
+  if (!projectSetupStore.hasSelectedProject) return
+
+  renderingInProgress.value = true
+  try {
+    await apiClient.post(`/api/projects/${projectSetupStore.getProjectName}/render`)
+  } finally {
+    renderingInProgress.value = false
+  }
 }
 </script>
