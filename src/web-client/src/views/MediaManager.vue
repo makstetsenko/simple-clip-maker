@@ -25,7 +25,7 @@ import FileUploading from '@/components/Media/FileUploading.vue'
 import { Button, type FileUploadUploaderEvent } from 'primevue'
 import apiClient from '@/services/apiClient'
 import { useProjectSetupStore } from '@/stores/projectSetup'
-import { onMounted, ref, type Ref } from 'vue'
+import { onMounted, ref, watch, type Ref } from 'vue'
 
 const mediaExt = ['.mp3', '.m4a', '.mp4', '.mov', '.m4v']
 const projectSetupStore = useProjectSetupStore()
@@ -34,6 +34,13 @@ const mediaItems: Ref<string[]> = ref([])
 onMounted(() => {
   reloadMedia()
 })
+
+watch(
+  () => projectSetupStore.project,
+  () => {
+    reloadMedia()
+  },
+)
 
 async function onUpload(e: FileUploadUploaderEvent) {
   const form = new FormData()
@@ -48,6 +55,7 @@ async function onUpload(e: FileUploadUploaderEvent) {
 }
 
 async function reloadMedia() {
+  mediaItems.value = []
   const resp = await apiClient.get(`/api/projects/${projectSetupStore.getProjectName}/media`)
   mediaItems.value = resp.data
 }
