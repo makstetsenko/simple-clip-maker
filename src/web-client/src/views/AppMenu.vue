@@ -1,6 +1,29 @@
 <template>
   <div>
-    <Menubar :model="menuItems" />
+    <Menubar :model="projectMenuItems">
+      <template #start>
+        <div>Simple clip builder</div>
+        <Chip v-if="projectSetupStore.hasSelectedProject">
+          <strong>Project:</strong>
+          {{ projectSetupStore.project?.name }} | {{ projectSetupStore.project?.resolution[0] }}x{{
+            projectSetupStore.project?.resolution[1]
+          }}
+          | {{ projectSetupStore.project?.fps }}fps
+        </Chip>
+      </template>
+      <template #end>
+        <Button
+          severity="help"
+          @click="renderProject"
+          :loading="renderingInProgress"
+          variant="outlined"
+          v-if="projectSetupStore.hasSelectedProject"
+        >
+          Render
+        </Button>
+      </template>
+    </Menubar>
+
     <NewProjectModal v-model="newProjectModalVisible" @new-project-create="onNewProjectCreate" />
   </div>
 </template>
@@ -15,25 +38,26 @@ import { useProjectSetupStore } from '@/stores/projectSetup'
 import Menubar from 'primevue/menubar'
 import type { MenuItem } from 'primevue/menuitem'
 import { onMounted, ref, type Ref } from 'vue'
+import Chip from 'primevue/chip'
+import Button from 'primevue/button'
 
-const recentProjects: Ref<ProjectModel[]> = ref([])
 const newProjectModalVisible: Ref<boolean> = ref(false)
 const renderingInProgress: Ref<boolean> = ref(false)
 
 const projectSetupStore = useProjectSetupStore()
 
-const menuItems: Ref<MenuItem[]> = ref([
+const projectMenuItems: Ref<MenuItem[]> = ref([
   {
-    label: 'New Project',
+    label: 'New',
     command: () => (newProjectModalVisible.value = true),
   },
   {
-    label: 'Open recent',
-  },
-  {
-    label: 'Render project',
-    command: renderProject,
-    loading: renderingInProgress.value,
+    label: 'Open',
+    items: [
+      {
+        label: 'Recent projects',
+      },
+    ],
   },
 ])
 
@@ -50,9 +74,7 @@ async function loadProjects() {
     const projects: Project[] = resp.data
     const models = projects.map((x) => mapProjectModel(x))
 
-    recentProjects.value = models
-    menuItems.value[1]!.visible = models.length > 0
-    menuItems.value[1]!.items = models.map((x) => ({
+    projectMenuItems.value[1]!.items![0]!.items = models.map((x) => ({
       label: `${x.name} (${x.fps}fps ${x.resolution[0]}x${x.resolution[1]})`,
       command: () => onProjectSelectClick(x),
     }))

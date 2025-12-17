@@ -35,6 +35,7 @@
             icon="pi pi-arrow-right-arrow-left"
             aria-label="Swap"
             @click="onSwapResolutionClick"
+            severity="secondary"
           />
         </InputGroupAddon>
         <FloatLabel variant="on">

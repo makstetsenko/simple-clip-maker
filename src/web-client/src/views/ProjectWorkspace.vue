@@ -1,18 +1,26 @@
 <template>
-  <div v-if="projectSetupStore.hasSelectedProject">
-    <ProjectOverview />
+  <div v-if="projectSetupStore.hasSelectedProject"></div>
+  <Splitter>
+    <SplitterPanel :size="15">
+      <TimelineConfigurator />
+    </SplitterPanel>
 
-    <MediaManager />
+    <SplitterPanel :size="65">
+      [Video / Segment editing / Media] placeholder
+      <MediaManager />
+    </SplitterPanel>
 
-    <TimelineConfigurator />
-  </div>
+    <SplitterPanel :size="20"> General config placeholder </SplitterPanel>
+  </Splitter>
 </template>
 
 <script setup lang="ts">
 import { useProjectSetupStore } from '@/stores/projectSetup'
 import TimelineConfigurator from './TimelineConfigurator.vue'
-import ProjectOverview from '@/components/Project/ProjectOverview.vue'
 import MediaManager from './MediaManager.vue'
+
+import Splitter from 'primevue/splitter'
+import SplitterPanel from 'primevue/splitterpanel'
 
 const projectSetupStore = useProjectSetupStore()
 </script>
