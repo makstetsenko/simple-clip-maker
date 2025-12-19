@@ -26,7 +26,7 @@ export const mapSegmentModel = (segment: TimelineSegment): TimelineSegmentModel 
     index: segment.index,
     splitScreen: segment.is_split_screen,
     videos: segment.videos.map((v) => mapVideoModel(v)),
-    effects: segment.effects?.map((e) => mapEffectModel(e)),
+    effects: segment.effects?.map((e) => mapEffectModel(e)) || [],
   } as TimelineSegmentModel
 }
 
@@ -39,7 +39,7 @@ export const mapEffectModel = (effect: Effect): EffectModel => {
     id: effect.id,
     effectType: mapEffectType(effect.effect_type),
     method: mapEffectMethod(effect.method),
-    args: effect.args,
+    args: effect.args || {},
   } as EffectModel
 }
 

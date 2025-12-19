@@ -335,10 +335,10 @@ def build_effect_args(effectType: EffectType, effectMethod: EffectMethod, value:
     if effectType == EffectType.CROP:
 
         if effectMethod == EffectMethod.LINE_CROP:
-            return EffectArgs.ZOOM.LINE_CROP.from_dict(value)
+            return EffectArgs.CROP.LINE_CROP.from_dict(value)
 
         if effectMethod == EffectMethod.BURST_LINE_CROP:
-            return EffectArgs.ZOOM.BURST_LINE_CROP.from_dict(value)
+            return EffectArgs.CROP.BURST_LINE_CROP.from_dict(value)
 
         if effectMethod == EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE:
             return EffectArgs.CROP.FIT_VIDEO_INTO_FRAME_SIZE()
@@ -346,7 +346,7 @@ def build_effect_args(effectType: EffectType, effectMethod: EffectMethod, value:
     if effectType == EffectType.PLAYBACK:
 
         if effectMethod == EffectMethod.FORWARD_REVERSE:
-            return EffectArgs.ZOOM.FORWARD_REVERSE.from_dict(value)
+            return EffectArgs.PLAYBACK.FORWARD_REVERSE.from_dict(value)
 
         if effectMethod == EffectMethod.RAMP_SPEED_SEGMENTS:
-            return EffectArgs.ZOOM.RAMP_SPEED_SEGMENTS.from_dict(value)
+            return EffectArgs.PLAYBACK.RAMP_SPEED_SEGMENTS.from_dict(value)

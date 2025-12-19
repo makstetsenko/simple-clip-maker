@@ -3,14 +3,14 @@
     <video-player
       :src="videoUri"
       :controls="false"
-      :width="400"
+      :width="350"
       :muted="true"
       :loop="true"
       @mounted="handleMounted"
       @timeupdate="onTimeUpdated"
     />
 
-    <VideoPlayerTimelineBar
+    <SegmentSelectionPlayerTimelineBar
       :duration="state?.duration"
       :playback-time="state?.currentTime"
       :segment-start-time="playheadTime"
@@ -33,13 +33,14 @@ import apiClient from '@/services/apiClient'
 import { VideoPlayer, type VideoPlayerState } from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
 import videojs from 'video.js'
-import VideoPlayerTimelineBar from './VideoPlayerTimelineBar.vue'
+import SegmentSelectionPlayerTimelineBar from './SegmentSelectionPlayerTimelineBar.vue'
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 
 type VideoJsPlayer = ReturnType<typeof videojs>
 
 const player = shallowRef<VideoJsPlayer>()
 const state = shallowRef<VideoPlayerState>()
+const emits = defineEmits(['onSegmentStartTimeChanged'])
 
 const props = defineProps({
   videoPath: String,
@@ -78,9 +79,13 @@ const onTimeUpdated = () => {
   }
 }
 
-const onVideoTimelineSeeked = (time: number) => {
+const onVideoTimelineSeeked = (time: number, segmentChanged: boolean) => {
   player.value!.currentTime(time)
   playheadTime.value = time
+
+  if (segmentChanged) {
+    emits('onSegmentStartTimeChanged', time)
+  }
 }
 </script>
 

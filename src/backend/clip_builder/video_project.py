@@ -98,6 +98,10 @@ class VideoProjectSetup:
         os.makedirs(self.source_files_dir_path, exist_ok=True)
         os.makedirs(self.setup_dir_path, exist_ok=True)
 
+    def clear_runtime_dirs(self):
+        shutil.rmtree(self.runtime_dir_path, ignore_errors=True)
+        os.makedirs(self.runtime_dir_path)
+
     @staticmethod
     def get_setup_config_path(project_name: str) -> str:
         return f"{VideoProjectSetup.setup_dir_path}/{project_name}.yaml"

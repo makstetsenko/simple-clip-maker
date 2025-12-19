@@ -12,7 +12,9 @@
       :fileLimit="100"
     >
       <template #empty>
-        <span>Drag and drop files to here to upload.</span>
+        <div :style="{ height: 200 + 'px' }">
+          <span>Drag and drop files to here to upload.</span>
+        </div>
       </template>
     </FileUpload>
   </div>

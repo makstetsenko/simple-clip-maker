@@ -1,6 +1,8 @@
 import glob
 from pathlib import Path
+import uuid
 from fastapi import APIRouter, UploadFile
+from fastapi.responses import FileResponse
 
 from backend.clip_builder.timeline_config import TimelineConfig
 from backend.clip_builder.video_project import VideoProject, VideoProjectSetup, get_path_list
@@ -43,7 +45,8 @@ async def import_media(project_name: str, files: list[UploadFile]):
     project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
 
     for media_file in files:
-        write_file_path = Path(project_setup.source_files_dir_path + "/" + media_file.filename)
+        file_name = str(uuid.uuid4()) + "." + Path(media_file.filename).suffix
+        write_file_path = Path(project_setup.source_files_dir_path + "/" + file_name)
 
         written = 0
         try:
@@ -66,16 +69,39 @@ async def get_project_media_info(project_name: str):
     file_names = [Path(f).name for f in files]
     return file_names
 
+
 @router.post("/{project_name}/render")
-async def render_project(project_name: str):
+async def render_project(project_name: str, debug: bool = False):
     project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
-    
+
     timeline_config = TimelineConfig.load(project_setup.timeline_path)
     project = VideoProject(project_setup=project_setup)
     clip_builder = project.get_clip_builder()
-    
-    clip_builder.set_debug(True)
-    
+
+    clip_builder.set_debug(debug)
+
+    project_setup.clear_runtime_dirs()
     clip_path = await clip_builder.build_clip(timeline_config)
 
     project.save_clip_with_audio(clip_path=clip_path)
+
+
+@router.post("/{project_name}/segment/{segment_id}/render/preview")
+async def render_project(project_name: str, segment_id: str, debug: bool = False):
+    project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
+
+    timeline_config: TimelineConfig = TimelineConfig.load(project_setup.timeline_path)
+    project = VideoProject(project_setup=project_setup)
+    clip_builder = project.get_clip_builder()
+
+    clip_builder.set_debug(debug)
+
+    project_setup.clear_runtime_dirs()
+    
+    single_segment_timeline_config = timeline_config.copy_to_single_segment_timeline(segment_id)
+    print(single_segment_timeline_config.to_dict())
+    
+    clip_path = await clip_builder.build_clip(single_segment_timeline_config)
+    
+    return clip_path
+

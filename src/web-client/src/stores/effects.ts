@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { type ProjectModel } from '@/shared/models/ProjectModel'
+
+interface Timeline
 
 export const useProjectSetupStore = defineStore('project-setup', {
-  state: (): { project: ProjectModel | null, debugMode: boolean } => {
+  state: (): => {
     return { project: null, debugMode: false }
   },
   actions: {

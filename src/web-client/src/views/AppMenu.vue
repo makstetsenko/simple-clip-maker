@@ -13,6 +13,13 @@
       </template>
       <template #end>
         <Button
+          severity="success"
+          @click="upsertTimeline"
+          v-if="timelineStore.timelineExists"
+          variant="outlined"
+          >Save</Button
+        >
+        <Button
           severity="help"
           @click="renderProject"
           :loading="renderingInProgress"
@@ -21,6 +28,12 @@
         >
           Render
         </Button>
+        <ToggleButton
+          v-model="projectSetupStore.debugMode"
+          onLabel="DEBUG ON"
+          offLabel="debug off"
+          size="small"
+        />
       </template>
     </Menubar>
 
@@ -40,11 +53,15 @@ import type { MenuItem } from 'primevue/menuitem'
 import { onMounted, ref, type Ref } from 'vue'
 import Chip from 'primevue/chip'
 import Button from 'primevue/button'
+import { useTimelineStore } from '@/stores/timeline'
+import { mapTimeline } from '@/shared/mappers/timelineMapper'
+import ToggleButton from 'primevue/togglebutton'
 
 const newProjectModalVisible: Ref<boolean> = ref(false)
 const renderingInProgress: Ref<boolean> = ref(false)
 
 const projectSetupStore = useProjectSetupStore()
+const timelineStore = useTimelineStore()
 
 const projectMenuItems: Ref<MenuItem[]> = ref([
   {
@@ -93,10 +110,12 @@ async function onNewProjectCreate(project: ProjectModel) {
   })
   await loadProjects()
   onProjectSelectClick(project)
+  timelineStore.clearSelectedSegments()
 }
 
 function onProjectSelectClick(project: ProjectModel) {
   projectSetupStore.setProject(project)
+  timelineStore.clearSelectedSegments()
 }
 
 async function renderProject() {
@@ -104,9 +123,20 @@ async function renderProject() {
 
   renderingInProgress.value = true
   try {
-    await apiClient.post(`/api/projects/${projectSetupStore.getProjectName}/render`)
+    await upsertTimeline()
+    await apiClient.post(
+      `/api/projects/${projectSetupStore.getProjectName}/render?debug=${projectSetupStore.debugMode}`,
+    )
   } finally {
     renderingInProgress.value = false
   }
+}
+
+async function upsertTimeline() {
+  if (!timelineStore.timelineExists) return
+  const timelineObj = mapTimeline(timelineStore.timeline!)
+
+  const url = `/api/${projectSetupStore.getProjectName}/timeline/upsert`
+  await apiClient.post(url, timelineObj)
 }
 </script>

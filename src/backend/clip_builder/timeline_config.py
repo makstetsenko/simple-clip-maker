@@ -156,3 +156,18 @@ class TimelineConfig:
         logger.info(f"Load timeline config {path}")
         with open(path, "r") as f:
             return TimelineConfig.from_dict(value=yaml.safe_load(f))
+
+
+    def copy_to_single_segment_timeline(self, segment_id: str):
+        
+        segment = [s for s in self.segments if s.id == segment_id][0]
+        segment.start_time = 0
+        segment.end_time = segment.duration
+        
+        return TimelineConfig(
+            effects=self.effects,
+            duration=segment.duration,
+            fps=self.fps,
+            segments=[segment],
+            size=self.size
+        )

@@ -1,47 +1,76 @@
 <template>
-  <div v-if="effectModel">
-    <select v-model="effectModel.effectType">
-      <option v-for="e in getEffectTypesFields()" :key="e.value" :value="e.value">
-        {{ e.label }}
-      </option>
-    </select>
+  <Card v-if="effectModel">
+    <template #content>
+      <FloatLabel variant="on">
+        <Select
+          fluid
+          v-model="effectModel.effectType"
+          :options="getEffectTypesFields()"
+          option-label="label"
+          option-value="value"
+          size="small"
+          inputId="effect-type"
+        />
+        <label for="effect-type">Effect</label>
+      </FloatLabel>
+      <FloatLabel variant="on">
+        <Select
+          fluid
+          v-model="effectModel.method"
+          :options="getEffectMethodFields(effectModel.effectType)"
+          option-label="label"
+          option-value="value"
+          size="small"
+          inputId="effect-method"
+          @change="onEffectMethodChange"
+        />
+        <label for="effect-method">Method</label>
+      </FloatLabel>
 
-    <select v-model="effectModel.method">
-      <option
-        v-for="e in getEffectMethodFields(effectModel.effectType)"
-        :key="e.value"
-        :value="e.value"
-      >
-        {{ e.label }}
-      </option>
-    </select>
+      <EffectArgsProps
+        v-if="effectModel.args"
+        v-model="effectModel.args"
+        :descriptors="getDescriptors(effectModel.effectType, effectModel.method)"
+      />
+    </template>
 
-    <EffectArgsContainer
-      :args="effectModel!.args"
-      :effect-type="effectModel.effectType"
-      :method="effectModel.method"
-      :id="effectModel.id"
-      @on-args-changed="onArgsChanged"
-    />
+    <template #footer>
+      <Button
+        icon="pi pi-trash"
+        @click="onRemoveClick"
+        size="small"
+        variant="text"
+        severity="danger"
+      />
+      <Button
+        icon="pi pi-clone"
+        @click="onCopyClick"
+        size="small"
+        variant="text"
+        severity="contrast"
+      />
+    </template>
+  </Card>
 
-    <button @click="onRemoveClick">Remove</button>
-    <hr />
-  </div>
+  <Divider v-if="effectModel" />
 </template>
 
 <script setup lang="ts">
 import { watch } from 'vue'
 import { getEffectMethodFields, getEffectTypesFields } from './effectFields'
-import EffectArgsContainer from './EffectArgs/EffectArgsContainer.vue'
 import { type EffectModel } from '@/shared/models/TimelineModel'
+import EffectArgsProps from './EffectArgProps.vue'
+import { getDescriptors } from './effectArgsDescriptors'
+import Card from 'primevue/card'
+import Button from 'primevue/button'
+import Divider from 'primevue/divider'
+import FloatLabel from 'primevue/floatlabel'
+import Select from 'primevue/select'
+import { getDefaultArgs } from './effectArgsDefaults'
 
 const emits = defineEmits(['onRemove'])
 
 const effectModel = defineModel<EffectModel>()
-
-function onArgsChanged(newArgs: object) {
-  effectModel.value!.args = newArgs
-}
 
 function onRemoveClick() {
   emits('onRemove', effectModel.value?.id)
@@ -53,7 +82,21 @@ watch(
     const methods = getEffectMethodFields(val)
     if (!methods) return
 
-    effectModel.value!.method = getEffectMethodFields(val)[0]!.value
+    effectModel.value!.method = methods[0]!.value
+    onEffectMethodChange()
   },
 )
+
+function onEffectMethodChange() {
+  if (Object.keys(effectModel.value!.args!).length > 0) return
+  if (!effectModel.value) return
+  if (!effectModel.value.effectType) return
+  if (!effectModel.value.method) return
+
+  effectModel.value!.args = getDefaultArgs(effectModel.value!.effectType, effectModel.value!.method)
+}
+
+function onCopyClick() {
+  
+}
 </script>

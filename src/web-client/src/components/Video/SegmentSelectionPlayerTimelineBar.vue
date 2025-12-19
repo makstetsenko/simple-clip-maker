@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
-import { ref, useTemplateRef, type Ref, computed, watch } from 'vue'
+import { ref, useTemplateRef, type Ref, computed, watch, onMounted } from 'vue'
 
 const props = defineProps({
   duration: Number,
@@ -70,6 +70,10 @@ watch(
   },
 )
 
+onMounted(() => {
+  onPlay()
+})
+
 const isPlaying: Ref<boolean> = ref(false)
 
 const timelineAreaRef = useTemplateRef<HTMLElement>('timeline-area')
@@ -87,11 +91,18 @@ const segmentWidth = computed(() => {
 })
 
 const segmentStartX: Ref<number> = ref(0)
+const segmentStartTime = computed(() => {
+  if (!timelineAreaRef.value) return 0
+  const rect = timelineAreaRef.value.getBoundingClientRect()
+  return (segmentStartX.value / rect.width) * props.duration!
+})
+
 let allowSegmentMove = false
 
 const onTimelineAreaMouseMove = (e: MouseEvent) => {
   movePlayhead(e)
   moveSegmentIfAllowed(e)
+  emits('onSeeked', playheadTime.value)
 }
 
 const onTimelineAreaMouseDown = () => {
@@ -107,10 +118,11 @@ const onTimelineAreaMouseClick = (e: MouseEvent) => {
   movePlayhead(e)
   moveSegmentIfAllowed(e)
   allowSegmentMove = false
-  emits('onSeeked', playheadTime.value)
+  emits('onSeeked', playheadTime.value, true)
 }
 
 const onPlay = () => {
+  emits('onSeeked', segmentStartTime.value, false)
   isPlaying.value = true
   emits('onPlay')
 }

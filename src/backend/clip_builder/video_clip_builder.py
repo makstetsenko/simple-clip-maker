@@ -23,9 +23,6 @@ from .effects_descriptor import EffectArgs
 logger = logging.getLogger(__name__)
 
 
-process_pool = ProcessPoolExecutor(max_workers=4)
-
-
 @dataclass
 class VideoClipBuilder:
     fps: int
@@ -65,39 +62,27 @@ class VideoClipBuilder:
 
     async def build_segment_clips(self, config: TimelineConfig):
 
-        loop = asyncio.get_running_loop()
-        tasks: set[Future[tuple[int, str]]] = set()
-
         progress_bar = tqdm(total=len(config.segments))
         progress_bar.set_description("Building segments")
-
-        def done_callback(t: Future[tuple[int, str]]):
-            tasks.discard(t)
-            progress_bar.update(1)
+        segment_clips: list[tuple[int, str]] = []
 
         try:
             for segment in config.segments:
                 if segment.is_split_screen:
-                    task = loop.run_in_executor(
-                        process_pool, self.write_spit_screen_clip, self.temp_path, segment, config.effects
-                    )
+                    res = await self.write_spit_screen_clip(self.temp_path, segment, config.effects)
                 else:
-                    task = loop.run_in_executor(
-                        process_pool, self.write_single_panel_clip, self.temp_path, segment, config.effects
-                    )
+                    res = await self.write_single_panel_clip(self.temp_path, segment, config.effects)
 
-                task.add_done_callback(done_callback)
-                tasks.add(task)
+                segment_clips.append(res)
+                progress_bar.update(1)
 
-            segment_clips: list[tuple[int, str]] = await asyncio.gather(*tasks)
             segment_clips.sort(key=lambda x: x[0])
             return [s[1] for s in segment_clips]
 
         finally:
-            process_pool.shutdown(wait=True)
             progress_bar.close()
 
-    def write_single_panel_clip(
+    async def write_single_panel_clip(
         self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
     ) -> tuple[int, str]:
         video = segment_config.videos[0]
@@ -116,9 +101,10 @@ class VideoClipBuilder:
         subclip.close()
         merged_clip.close()
 
+        await asyncio.sleep(0)
         return (segment_config.index, segment_clip_path)
 
-    def write_spit_screen_clip(
+    async def write_spit_screen_clip(
         self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
     ) -> tuple[int, str]:
 
@@ -166,6 +152,7 @@ class VideoClipBuilder:
             subclipped.close()
             clip.close()
 
+            await asyncio.sleep(0)
             return (segment_config.index, segment_clip_path)
 
         if len(segment_config.videos) == 2:
@@ -214,6 +201,7 @@ class VideoClipBuilder:
             clip_1.close()
             clip_2.close()
 
+            await asyncio.sleep(0)
             return (segment_config.index, segment_clip_path)
 
         position_layout = (
@@ -247,6 +235,7 @@ class VideoClipBuilder:
         for c in subclips + clips:
             c.close()
 
+        await asyncio.sleep(0)
         return (segment_config.index, segment_clip_path)
 
     def get_clip_padding(self, duration: float):
@@ -305,7 +294,7 @@ class VideoClipBuilder:
             if e.effect_type == EffectType.FLASH:
 
                 if e.method == EffectMethod.FLASH:
-                    effect_args: EffectArgs.ZOOM.FLASH = e.args
+                    effect_args: EffectArgs.FLASH.FLASH = e.args
                     segment_clip = flash_effect_preset.flash(
                         clip=segment_clip,
                         time=effect_args.time,
@@ -315,7 +304,7 @@ class VideoClipBuilder:
                     )
 
                 if e.method == EffectMethod.BURST_FLASH:
-                    effect_args: EffectArgs.ZOOM.BURST_FLASH = e.args
+                    effect_args: EffectArgs.FLASH.BURST_FLASH = e.args
                     segment_clip = flash_effect_preset.burst_flash(
                         clip=segment_clip,
                         flashes_count=effect_args.flashes_count,
@@ -326,7 +315,7 @@ class VideoClipBuilder:
             if e.effect_type == EffectType.CROP:
 
                 if e.method == EffectMethod.LINE_CROP:
-                    effect_args: EffectArgs.ZOOM.LINE_CROP = e.args
+                    effect_args: EffectArgs.CROP.LINE_CROP = e.args
                     segment_clip = crop_effect_preset.line_crop(
                         clip=segment_clip,
                         line_number=effect_args.line_number,
@@ -335,7 +324,7 @@ class VideoClipBuilder:
                     )
 
                 if e.method == EffectMethod.BURST_LINE_CROP:
-                    effect_args: EffectArgs.ZOOM.BURST_LINE_CROP = e.args
+                    effect_args: EffectArgs.CROP.BURST_LINE_CROP = e.args
                     segment_clip = crop_effect_preset.burst_line_crop(
                         clip=segment_clip,
                         total_lines=effect_args.total_lines,
@@ -349,13 +338,13 @@ class VideoClipBuilder:
             if e.effect_type == EffectType.PLAYBACK:
 
                 if e.method == EffectMethod.FORWARD_REVERSE:
-                    effect_args: EffectArgs.ZOOM.FORWARD_REVERSE = e.args
+                    effect_args: EffectArgs.PLAYBACK.FORWARD_REVERSE = e.args
                     segment_clip = playback_effects.forward_reverse(
-                        clip=segment_clip, start_speed=float(e.args[0]), fast_slow_mode=True
+                        clip=segment_clip, start_speed=float(effect_args.start_speed), fast_slow_mode=True
                     )
 
                 if e.method == EffectMethod.RAMP_SPEED_SEGMENTS:
-                    effect_args: EffectArgs.ZOOM.RAMP_SPEED_SEGMENTS = e.args
+                    effect_args: EffectArgs.PLAYBACK.RAMP_SPEED_SEGMENTS = e.args
                     segment_clip = playback_effects.ramp_speed_segments(
                         clip=segment_clip,
                         speeds=effect_args.speeds,

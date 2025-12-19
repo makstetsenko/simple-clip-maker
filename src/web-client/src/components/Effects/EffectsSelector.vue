@@ -8,13 +8,14 @@
     />
   </div>
 
-  <button @click="onNewClick">New effect</button>
+  <Button @click="onNewClick" variant="outlined">New effect</Button>
 </template>
 
 <script setup lang="ts">
 import EffectItem from './EffectItem.vue'
 import { EffectMethod, EffectType, type EffectModel } from '@/shared/models/TimelineModel'
 import { v4 as uuidv4 } from 'uuid'
+import Button from 'primevue/button'
 
 const effectItems = defineModel<EffectModel[] | null>()
 

@@ -39,6 +39,7 @@ def get_args():
 
     return parser.parse_args()
 
+
 def get_first_path(args, file_ext: list[str]) -> str | None:
     timeline_config_path_templates = [args.input_dir_path.rstrip("/") + "/*." + x for x in file_ext]
 
@@ -47,6 +48,7 @@ def get_first_path(args, file_ext: list[str]) -> str | None:
             return g
 
     return None
+
 
 async def main():
     logging.basicConfig(
@@ -57,9 +59,8 @@ async def main():
 
     args = get_args()
 
-
     video_resolution_items = args.video_resolution.split("x")
-    
+
     await build_clip(
         input_dir=args.input_dir_path,
         video_resolution=(
