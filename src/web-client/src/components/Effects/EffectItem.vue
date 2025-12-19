@@ -56,6 +56,21 @@
         variant="text"
         severity="contrast"
       />
+
+      <Button
+        icon="pi pi-arrow-up"
+        @click="onSwapUp"
+        size="small"
+        variant="text"
+        severity="contrast"
+      />
+      <Button
+        icon="pi pi-arrow-down"
+        @click="onSwapDown"
+        size="small"
+        variant="text"
+        severity="contrast"
+      />
     </template>
   </Card>
 
@@ -75,7 +90,7 @@ import FloatLabel from 'primevue/floatlabel'
 import Select from 'primevue/select'
 import { useEffectsStore } from '@/stores/effects'
 
-const emits = defineEmits(['onRemove', 'onDuplicate'])
+const emits = defineEmits(['onRemove', 'onDuplicate', 'onSwapUp', 'onSwapDown'])
 
 const effectModel = defineModel<EffectModel>()
 const effectsStore = useEffectsStore()
@@ -114,5 +129,14 @@ function onCopyClick() {
 function onDuplicateClick() {
   if (!effectModel.value) return
   emits('onDuplicate', effectModel.value)
+}
+
+function onSwapUp() {
+  if (!effectModel.value) return
+  emits('onSwapUp', effectModel.value.id)
+}
+function onSwapDown() {
+  if (!effectModel.value) return
+  emits('onSwapDown', effectModel.value.id)
 }
 </script>

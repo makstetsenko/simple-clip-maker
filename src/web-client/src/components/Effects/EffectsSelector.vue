@@ -6,6 +6,8 @@
       v-model="effectItems[i]"
       @on-remove="onRemove"
       @on-duplicate="onDuplicate"
+      @on-swap-up="onSwapUp"
+      @on-swap-down="onSwapDown"
     />
   </div>
 
@@ -55,5 +57,24 @@ function onDuplicate(e: EffectModel) {
 function onPasteClick() {
   if (!effectsStore.rememberedEffect) return
   effectItems.value?.push(effectsStore.pasteAsNewEffect()!)
+}
+
+function onSwapUp(effectId: string) {
+  if (!effectItems.value) return
+  const index = effectItems.value.findIndex((x) => x.id === effectId)
+
+  if (index == 0) return
+
+  const effect = effectItems.value.splice(index, 1)[0]!
+  effectItems.value.splice(index - 1, 0, effect)
+}
+function onSwapDown(effectId: string) {
+  if (!effectItems.value) return
+  const index = effectItems.value.findIndex((x) => x.id === effectId)
+
+  if (index == effectItems.value.length - 1) return
+
+  const effect = effectItems.value.splice(index, 1)[0]!
+  effectItems.value.splice(index + 1, 0, effect)
 }
 </script>
