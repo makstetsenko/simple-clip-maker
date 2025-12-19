@@ -23,6 +23,10 @@ export const useTimelineStore = defineStore('timeline', {
       const index = this.timeline.segments.findIndex((x) => x.id === id)!
       this.selectedSegments.push(this.timeline.segments[index]!)
     },
+    appendSelectSegmentByIndex(index: number) {
+      if (!this.timeline) return
+      this.selectedSegments.push(this.timeline.segments[index]!)
+    },
     clearSelectedSegments() {
       this.selectedSegments.splice(0, this.selectedSegments.length)
     },

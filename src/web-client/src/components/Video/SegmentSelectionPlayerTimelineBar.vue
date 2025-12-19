@@ -49,7 +49,6 @@ watch(
   () => props.duration,
   (duration) => {
     if (!duration) return
-    console.log(props.videoSegmentStartTime)
     segmentHeadStartTime.value = props.videoSegmentStartTime ?? 0
     playbackHeadTime.value = props.videoSegmentStartTime ?? 0
     seekHeadTime.value = props.videoSegmentStartTime ?? 0
@@ -68,8 +67,6 @@ watch(
 )
 
 onMounted(() => {
-  // seekHeadTime.value = props.videoSegmentDuration ?? 0
-  // playbackHeadTime.value = props.videoSegmentDuration ?? 0
   onPlay()
 })
 
@@ -132,7 +129,6 @@ const onTimelineAreaMouseClick = (e: MouseEvent) => {
 }
 
 const onPlay = () => {
-  // emits('onSeeked', segmentHeadStartTime.value, false)
   isPlaying.value = true
   emits('onPlay')
 }

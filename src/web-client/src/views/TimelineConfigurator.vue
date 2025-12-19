@@ -26,7 +26,13 @@
         </template>
       </Toolbar>
 
-      <TimelineContainer v-if="timelineStore.timelineExists" />
+      <Card>
+        <template #content>
+          <Slider v-model="timelineZoom" :min="0.25" :max="3" :step="0.05" />
+        </template>
+      </Card>
+
+      <TimelineContainer v-if="timelineStore.timelineExists" :timeline-zoom="timelineZoom" />
     </template>
     <template #footer>
       <Button
@@ -51,12 +57,10 @@ import Button from 'primevue/button'
 import { useTimelineStore } from '@/stores/timeline'
 import { Card } from 'primevue'
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
-import type {
-  EffectModel,
-  TimelineSegmentModel,
-} from '@/shared/models/TimelineModel'
+import type { EffectModel, TimelineSegmentModel } from '@/shared/models/TimelineModel'
 
 import Toolbar from 'primevue/toolbar'
+import Slider from 'primevue/slider'
 
 const timelineStore = useTimelineStore()
 const projectSetupStore = useProjectSetupStore()
@@ -64,6 +68,8 @@ const generateTimelineLoading: Ref<boolean> = ref(false)
 const allowGenerateTimeline = computed(
   () => projectSetupStore.hasSelectedProject && !timelineStore.timelineExists,
 )
+
+const timelineZoom: Ref<number> = ref(1.0)
 
 onMounted(() => {
   reloadTimeline()

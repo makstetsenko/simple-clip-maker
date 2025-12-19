@@ -1,10 +1,17 @@
 <template>
   <div
     :class="{ segment: true, selected: selected }"
-    @click.exact="() => onClick(false)"
-    @click.shift="() => onClick(true)"
+    @mousedown.exact="() => onClick(false)"
+    @mousedown.shift="() => onClick(true)"
     :style="{ height: segmentHeight + 'px', top: segmentTopPosition + 'px' }"
   >
+  <div class="drag-line-top-head"></div>
+    <div
+      class="drag-line-top"
+      @mousedown="onDragLineMouseDown"
+      @mouseup="onDragLineMouseUp"
+      @mousemove="onDragLineMouseMove"
+    ></div>
     <div class="segment-label">
       <div class="segment-number"># {{ model?.index }}</div>
       <div class="segment-time">
@@ -26,7 +33,7 @@ const props = defineProps({
   selected: Boolean,
 })
 const model = defineModel<TimelineSegmentModel>()
-const emits = defineEmits(['onSegmentClick'])
+const emits = defineEmits(['onSegmentClick', 'onSegmentStartTimeDrag'])
 
 const onClick = (multiselect: boolean) => {
   emits('onSegmentClick', model.value!.id, multiselect)
@@ -42,12 +49,23 @@ const segmentTopPosition = computed(() => {
     ((model.value!.startTime || 0) * (props.timelineHeight || 0)) / (props.timelineDuration || 0)
   return topPosition
 })
+
+let segmentDragging = false
+function onDragLineMouseDown() {
+  segmentDragging = true
+}
+function onDragLineMouseUp() {
+  segmentDragging = false
+}
+function onDragLineMouseMove(e: MouseEvent) {
+  if (!segmentDragging) return
+  emits('onSegmentStartTimeDrag', model.value, e.clientY)
+}
 </script>
 
 <style scoped>
 .segment {
   cursor: pointer;
-  border: 4px solid #6a64d8;
   background: #e6e6e6;
   position: absolute;
   width: 150px;
@@ -75,5 +93,22 @@ const segmentTopPosition = computed(() => {
 
 .segment-time {
   font-size: 14px;
+}
+
+.drag-line-top {
+  background: black;
+  height: 20px;
+  width: 100%;
+  position: absolute;
+  top: -10px;
+  cursor: all-scroll;
+  opacity: 0%;
+}
+.drag-line-top-head {
+  position: absolute;
+  top: -1px;
+  height: 2px;
+  background: blue;
+  width: 100%;
 }
 </style>
