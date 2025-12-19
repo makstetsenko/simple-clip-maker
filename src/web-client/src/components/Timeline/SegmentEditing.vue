@@ -14,8 +14,8 @@
             <div :key="v.id" v-for="v in model?.videos">
               <VideoPlayer
                 :videoPath="v.path"
-                :segmentStartTime="v.startTime"
-                :segmentDuration="model?.duration"
+                :videoSegmentStartTime="v.startTime"
+                :videoSegmentDuration="model?.duration"
                 @onSegmentStartTimeChanged="(t) => (v.startTime = t)"
               />
             </div>

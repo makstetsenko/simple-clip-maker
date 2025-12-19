@@ -31,7 +31,7 @@ export interface SegmentVideoModel {
 }
 
 export enum EffectType {
-  Zoom,
+  Zoom = 1,
   Flash,
   Crop,
   Pan,
@@ -39,7 +39,7 @@ export enum EffectType {
 }
 
 export enum EffectMethod {
-  ZOOM_IN__ZOOM_OUT,
+  ZOOM_IN__ZOOM_OUT = 1,
   ZOOM_OUT__ZOOM_IN,
   ZOOM_IN_AT_CLIP_STARTS,
   ZOOM_IN_AT_CLIP_ENDS,

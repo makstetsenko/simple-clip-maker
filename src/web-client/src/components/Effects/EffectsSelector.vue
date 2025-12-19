@@ -5,10 +5,14 @@
       :key="e.id"
       v-model="effectItems[i]"
       @on-remove="onRemove"
+      @on-duplicate="onDuplicate"
     />
   </div>
 
-  <Button @click="onNewClick" variant="outlined">New effect</Button>
+  <Button @click="onNewClick" variant="outlined">New</Button>
+  <Button @click="onPasteClick" variant="outlined" v-if="!!effectsStore.rememberedEffect"
+    >Paste</Button
+  >
 </template>
 
 <script setup lang="ts">
@@ -16,8 +20,11 @@ import EffectItem from './EffectItem.vue'
 import { EffectMethod, EffectType, type EffectModel } from '@/shared/models/TimelineModel'
 import { v4 as uuidv4 } from 'uuid'
 import Button from 'primevue/button'
+import { useEffectsStore } from '@/stores/effects'
+import { getEffectArgDescriptor } from './effectArgsDescriptors'
 
 const effectItems = defineModel<EffectModel[] | null>()
+const effectsStore = useEffectsStore()
 
 function onRemove(id: string) {
   const index = effectItems.value!.findIndex((x) => x.id === id)
@@ -29,11 +36,24 @@ function onNewClick() {
     effectItems.value = []
   }
 
+  const effectType = EffectType.Crop
+  const method = EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE
+
   effectItems.value.push({
     id: uuidv4(),
-    method: EffectMethod.FIT_VIDEO_INTO_FRAME_SIZE,
-    effectType: EffectType.Crop,
-    args: {},
+    effectType: effectType,
+    method: method,
+    args: getEffectArgDescriptor(effectType, method).default,
   })
+}
+
+function onDuplicate(e: EffectModel) {
+  effectsStore.rememberEffect(e)
+  effectItems.value?.push(effectsStore.pasteAsNewEffect()!)
+}
+
+function onPasteClick() {
+  if (!effectsStore.rememberedEffect) return
+  effectItems.value?.push(effectsStore.pasteAsNewEffect()!)
 }
 </script>

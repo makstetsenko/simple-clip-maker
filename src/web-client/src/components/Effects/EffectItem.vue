@@ -30,7 +30,7 @@
       <EffectArgsProps
         v-if="effectModel.args"
         v-model="effectModel.args"
-        :descriptors="getDescriptors(effectModel.effectType, effectModel.method)"
+        :descriptors="getEffectArgDescriptor(effectModel.effectType, effectModel.method).props"
       />
     </template>
 
@@ -43,8 +43,15 @@
         severity="danger"
       />
       <Button
-        icon="pi pi-clone"
+        icon="pi pi-copy"
         @click="onCopyClick"
+        size="small"
+        variant="text"
+        severity="contrast"
+      />
+      <Button
+        icon="pi pi-clone"
+        @click="onDuplicateClick"
         size="small"
         variant="text"
         severity="contrast"
@@ -60,17 +67,18 @@ import { watch } from 'vue'
 import { getEffectMethodFields, getEffectTypesFields } from './effectFields'
 import { type EffectModel } from '@/shared/models/TimelineModel'
 import EffectArgsProps from './EffectArgProps.vue'
-import { getDescriptors } from './effectArgsDescriptors'
+import { getEffectArgDescriptor } from './effectArgsDescriptors'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import FloatLabel from 'primevue/floatlabel'
 import Select from 'primevue/select'
-import { getDefaultArgs } from './effectArgsDefaults'
+import { useEffectsStore } from '@/stores/effects'
 
-const emits = defineEmits(['onRemove'])
+const emits = defineEmits(['onRemove', 'onDuplicate'])
 
 const effectModel = defineModel<EffectModel>()
+const effectsStore = useEffectsStore()
 
 function onRemoveClick() {
   emits('onRemove', effectModel.value?.id)
@@ -88,15 +96,23 @@ watch(
 )
 
 function onEffectMethodChange() {
-  if (Object.keys(effectModel.value!.args!).length > 0) return
   if (!effectModel.value) return
   if (!effectModel.value.effectType) return
   if (!effectModel.value.method) return
 
-  effectModel.value!.args = getDefaultArgs(effectModel.value!.effectType, effectModel.value!.method)
+  effectModel.value!.args = Object.assign(
+    {},
+    getEffectArgDescriptor(effectModel.value!.effectType, effectModel.value!.method).default,
+  )
 }
 
 function onCopyClick() {
-  
+  if (!effectModel.value) return
+  effectsStore.rememberEffect(effectModel.value)
+}
+
+function onDuplicateClick() {
+  if (!effectModel.value) return
+  emits('onDuplicate', effectModel.value)
 }
 </script>

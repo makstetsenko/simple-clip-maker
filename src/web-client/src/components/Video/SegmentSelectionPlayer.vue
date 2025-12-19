@@ -13,8 +13,8 @@
     <SegmentSelectionPlayerTimelineBar
       :duration="state?.duration"
       :playback-time="state?.currentTime"
-      :segment-start-time="playheadTime"
-      :segment-duration="segmentDuration"
+      :videoSegmentStartTime="playheadTime"
+      :videoSegmentDuration="segmentDuration"
       @on-seeked="onVideoTimelineSeeked"
       @on-pause="() => player?.pause()"
       @on-play="() => player?.play()"
@@ -44,18 +44,18 @@ const emits = defineEmits(['onSegmentStartTimeChanged'])
 
 const props = defineProps({
   videoPath: String,
-  segmentStartTime: Number,
-  segmentDuration: Number,
+  videoSegmentStartTime: Number,
+  videoSegmentDuration: Number,
 })
 
 onMounted(() => {
   if (player.value) {
-    player.value.currentTime(props.segmentStartTime!)
+    player.value.currentTime(props.videoSegmentStartTime!)
   }
 })
 
-const playheadTime: Ref<number> = ref(props.segmentStartTime!)
-const segmentDuration = props.segmentDuration
+const playheadTime: Ref<number> = ref(props.videoSegmentStartTime!)
+const segmentDuration = props.videoSegmentDuration
 
 const videoUri = computed(() =>
   apiClient.getUri({

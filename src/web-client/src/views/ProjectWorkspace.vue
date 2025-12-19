@@ -1,6 +1,9 @@
 <template>
-  <div v-if="projectSetupStore.hasSelectedProject"></div>
-  <Splitter>
+  <Panel v-if="!projectSetupStore.hasSelectedProject">
+      Select project to start work
+  </Panel>
+
+  <Splitter v-if="projectSetupStore.hasSelectedProject">
     <SplitterPanel :size="15">
       <TimelineConfigurator />
     </SplitterPanel>
@@ -72,6 +75,8 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
+
+import Panel from 'primevue/panel'
 
 const projectSetupStore = useProjectSetupStore()
 const timelineStore = useTimelineStore()

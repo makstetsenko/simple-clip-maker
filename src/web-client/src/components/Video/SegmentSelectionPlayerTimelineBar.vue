@@ -11,18 +11,16 @@
       class="timeline-area"
       ref="timeline-area"
       @mousemove="onTimelineAreaMouseMove"
-      @mousedown="onTimelineAreaMouseDown"
-      @mouseup="onTimelineAreaMouseUp"
       @click="onTimelineAreaMouseClick"
     >
       <div class="track">
         <div
           class="segment"
-          :style="{ left: segmentStartX + 'px', width: segmentWidth + 'px' }"
+          :style="{ left: segmentHeadStartX + 'px', width: segmentHeadWidth + 'px' }"
         ></div>
 
-        <div class="playhead" :style="{ left: playheadX + 'px' }">
-          <div class="playhead-label">{{ secondsToTimeSpanFractionalFormat(playheadTime) }}</div>
+        <div class="playhead" :style="{ left: seekHeadX + 'px' }">
+          <div class="playhead-label">{{ secondsToTimeSpanFractionalFormat(seekHeadTime) }}</div>
           <div class="playhead-line" />
         </div>
 
@@ -40,8 +38,8 @@ import { ref, useTemplateRef, type Ref, computed, watch, onMounted } from 'vue'
 
 const props = defineProps({
   duration: Number,
-  segmentStartTime: Number,
-  segmentDuration: Number,
+  videoSegmentStartTime: Number,
+  videoSegmentDuration: Number,
   playbackTime: Number,
 })
 
@@ -50,10 +48,11 @@ const emits = defineEmits(['onSeeked', 'onPlay', 'onPause'])
 watch(
   () => props.duration,
   (duration) => {
-    if (!timelineAreaRef.value) return
     if (!duration) return
-    const rect = timelineAreaRef.value.getBoundingClientRect()
-    segmentStartX.value = (props.segmentStartTime! / duration) * rect.width
+    console.log(props.videoSegmentStartTime)
+    segmentHeadStartTime.value = props.videoSegmentStartTime ?? 0
+    playbackHeadTime.value = props.videoSegmentStartTime ?? 0
+    seekHeadTime.value = props.videoSegmentStartTime ?? 0
   },
 )
 
@@ -64,13 +63,13 @@ watch(
     if (!time) return
     if (!props.duration) return
 
-    const rect = timelineAreaRef.value.getBoundingClientRect()
-
-    playbackHeadX.value = (time / props.duration) * rect.width
+    playbackHeadTime.value = time
   },
 )
 
 onMounted(() => {
+  // seekHeadTime.value = props.videoSegmentDuration ?? 0
+  // playbackHeadTime.value = props.videoSegmentDuration ?? 0
   onPlay()
 })
 
@@ -78,51 +77,62 @@ const isPlaying: Ref<boolean> = ref(false)
 
 const timelineAreaRef = useTemplateRef<HTMLElement>('timeline-area')
 
-const playheadX: Ref<number> = ref(0)
-const playheadTime: Ref<number> = ref(0)
+const seekHeadTime: Ref<number> = ref(0)
+const seekHeadX = computed(() => {
+  if (!seekHeadTime.value) return 0
+  if (!props.duration) return 0
+  if (!timelineAreaRef.value) return 0
 
-const playbackHeadX: Ref<number> = ref(0)
+  const rect = timelineAreaRef.value.getBoundingClientRect()
+  const timeScale = seekHeadTime.value / props.duration
 
-const segmentWidth = computed(() => {
+  return rect.width * timeScale
+})
+
+const playbackHeadTime: Ref<number> = ref(0)
+const playbackHeadX = computed(() => {
+  if (!playbackHeadTime.value) return 0
+  if (!props.duration) return 0
+  if (!timelineAreaRef.value) return 0
+
+  const rect = timelineAreaRef.value.getBoundingClientRect()
+  const timeScale = playbackHeadTime.value / props.duration
+
+  return rect.width * timeScale
+})
+
+const segmentHeadWidth = computed(() => {
   if (!timelineAreaRef.value) return
   if (!props.duration) return
   const rect = timelineAreaRef.value.getBoundingClientRect()
-  return (props.segmentDuration! / props.duration!) * rect.width
+  return (props.videoSegmentDuration! / props.duration!) * rect.width
 })
 
-const segmentStartX: Ref<number> = ref(0)
-const segmentStartTime = computed(() => {
+const segmentHeadStartTime: Ref<number> = ref(0)
+const segmentHeadStartX = computed(() => {
+  if (!segmentHeadStartTime.value) return 0
+  if (!props.duration) return 0
   if (!timelineAreaRef.value) return 0
-  const rect = timelineAreaRef.value.getBoundingClientRect()
-  return (segmentStartX.value / rect.width) * props.duration!
-})
 
-let allowSegmentMove = false
+  const rect = timelineAreaRef.value.getBoundingClientRect()
+  const timeScale = segmentHeadStartTime.value / props.duration
+
+  return rect.width * timeScale
+})
 
 const onTimelineAreaMouseMove = (e: MouseEvent) => {
-  movePlayhead(e)
-  moveSegmentIfAllowed(e)
-  emits('onSeeked', playheadTime.value)
-}
-
-const onTimelineAreaMouseDown = () => {
-  allowSegmentMove = true
-}
-
-const onTimelineAreaMouseUp = () => {
-  allowSegmentMove = false
+  setSeekHeadTime(e)
+  emits('onSeeked', seekHeadTime.value)
 }
 
 const onTimelineAreaMouseClick = (e: MouseEvent) => {
-  allowSegmentMove = true
-  movePlayhead(e)
+  setSeekHeadTime(e)
   moveSegmentIfAllowed(e)
-  allowSegmentMove = false
-  emits('onSeeked', playheadTime.value, true)
+  emits('onSeeked', seekHeadTime.value, true)
 }
 
 const onPlay = () => {
-  emits('onSeeked', segmentStartTime.value, false)
+  // emits('onSeeked', segmentHeadStartTime.value, false)
   isPlaying.value = true
   emits('onPlay')
 }
@@ -131,46 +141,44 @@ const onPause = () => {
   emits('onPause')
 }
 
-const movePlayhead = (e: MouseEvent) => {
+const setSeekHeadTime = (e: MouseEvent) => {
   if (!timelineAreaRef.value) return
 
   const rect = timelineAreaRef.value.getBoundingClientRect()
-  playheadX.value = e.clientX - rect.left
+  let seekHeadX = e.clientX - rect.left
 
-  if (playheadX.value < 0) {
-    playheadX.value = 0
+  if (seekHeadX < 0) {
+    seekHeadX = 0
   }
 
-  if (playheadX.value > rect.width) {
-    playheadX.value = rect.width
+  if (seekHeadX > rect.width) {
+    seekHeadX = rect.width
   }
 
-  if (allowSegmentMove && playheadX.value + segmentWidth.value! > rect.width) {
-    playheadX.value = rect.width - segmentWidth.value!
-  } else if (playheadX.value > rect.width) {
-    playheadX.value = rect.width
+  if (seekHeadX + segmentHeadWidth.value! > rect.width) {
+    seekHeadX = rect.width - segmentHeadWidth.value!
+  } else if (seekHeadX > rect.width) {
+    seekHeadX = rect.width
   }
 
-  playheadTime.value = (playheadX.value * props.duration!) / rect.width
+  seekHeadTime.value = (seekHeadX / rect.width) * props.duration!
 }
 
 const moveSegmentIfAllowed = (e: MouseEvent) => {
-  if (!allowSegmentMove) {
-    return
-  }
-
   if (!timelineAreaRef.value) return
 
   const rect = timelineAreaRef.value.getBoundingClientRect()
-  segmentStartX.value = e.clientX - rect.left
+  let segmentHeadStartX = e.clientX - rect.left
 
-  if (segmentStartX.value < 0) {
-    segmentStartX.value = 0
+  if (segmentHeadStartX < 0) {
+    segmentHeadStartX = 0
   }
 
-  if (segmentStartX.value + segmentWidth.value! > rect.width) {
-    segmentStartX.value = rect.width - segmentWidth.value!
+  if (segmentHeadStartX + segmentHeadWidth.value! > rect.width) {
+    segmentHeadStartX = rect.width - segmentHeadWidth.value!
   }
+
+  segmentHeadStartTime.value = (segmentHeadStartX / rect.width) * props.duration!
 }
 </script>
 
