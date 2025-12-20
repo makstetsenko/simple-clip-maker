@@ -3,9 +3,10 @@
     <video-player
       :src="videoUri"
       :controls="true"
-      :width="350"
+      :width="width ?? 350"
       :muted="true"
       :loop="true"
+      :autoplay="true"
       @mounted="handleMounted"
     />
   </div>
@@ -25,6 +26,7 @@ const state = shallowRef<VideoPlayerState>()
 
 const props = defineProps({
   videoPath: String,
+  width: Number
 })
 
 const videoUri = computed(() =>

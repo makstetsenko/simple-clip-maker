@@ -3,7 +3,8 @@ import type { TimelineModel, TimelineSegmentModel } from '@/shared/models/Timeli
 
 interface TimelineStoreState {
   timeline: TimelineModel | null
-  selectedSegments: TimelineSegmentModel[]
+  selectedSegments: TimelineSegmentModel[],
+  autoScrollOn: boolean
 }
 
 export const useTimelineStore = defineStore('timeline', {
@@ -11,6 +12,7 @@ export const useTimelineStore = defineStore('timeline', {
     return {
       timeline: null,
       selectedSegments: [],
+      autoScrollOn: false
     }
   },
   actions: {

@@ -5,18 +5,17 @@
     @mousedown.shift="() => onClick(true)"
     :style="{ height: segmentHeight + 'px', top: segmentTopPosition + 'px' }"
   >
-  <div class="drag-line-top-head"></div>
+    <div v-if="model?.index! > 0" class="drag-line-top-head"></div>
     <div
+      v-if="model?.index! > 0"
       class="drag-line-top"
       @mousedown="onDragLineMouseDown"
       @mouseup="onDragLineMouseUp"
       @mousemove="onDragLineMouseMove"
     ></div>
     <div class="segment-label">
-      <div class="segment-number"># {{ model?.index }}</div>
-      <div class="segment-time">
-        {{ secondsToTimeSpanFractionalFormat(model?.startTime) }} -
-        {{ secondsToTimeSpanFractionalFormat(model?.endTime) }}
+      <div class="segment-number" v-if="segmentHeight > 20">
+        s{{ model?.index }} {{ secondsToTimeSpanFractionalFormat(model?.startTime) }}
       </div>
     </div>
   </div>
@@ -66,33 +65,32 @@ function onDragLineMouseMove(e: MouseEvent) {
 <style scoped>
 .segment {
   cursor: pointer;
-  background: #e6e6e6;
   position: absolute;
-  width: 150px;
+  width: 100%;
   left: 0px;
   top: 0px;
   z-index: 100;
 }
 
+.segment:hover {
+  background: #999999;
+}
+
 .selected {
-  width: 200px;
-  z-index: 101;
+  z-index: 100;
+  background: #373737;
 }
 
 .segment-label {
   text-align: left;
-  color: #6a64d8;
+  color: #d1d1d1;
   font-weight: 700;
-  font-size: 20px;
+  font-size: 14px;
 }
 
 .segment-number {
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-
-.segment-time {
   font-size: 14px;
+  margin-bottom: 4px;
 }
 
 .drag-line-top {
@@ -108,7 +106,7 @@ function onDragLineMouseMove(e: MouseEvent) {
   position: absolute;
   top: -1px;
   height: 2px;
-  background: blue;
+  background: rgb(174, 174, 174);
   width: 100%;
 }
 </style>

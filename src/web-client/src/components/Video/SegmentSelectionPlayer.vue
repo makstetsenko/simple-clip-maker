@@ -40,7 +40,7 @@ type VideoJsPlayer = ReturnType<typeof videojs>
 
 const player = shallowRef<VideoJsPlayer>()
 const state = shallowRef<VideoPlayerState>()
-const emits = defineEmits(['onSegmentStartTimeChanged'])
+const emits = defineEmits(['onSegmentStartTimeChanged', 'onSegmentPlayingEnd'])
 
 const props = defineProps({
   videoPath: String,
@@ -76,6 +76,7 @@ const onTimeUpdated = () => {
 
   if (state.value!.currentTime >= endTime) {
     player.value!.currentTime(playheadTime.value)
+    emits('onSegmentPlayingEnd')
   }
 }
 

@@ -81,7 +81,7 @@ class VideoProjectSetup:
 
         self.project_dir_path = f"./output/projects/{self.project_name}"
         self.runtime_dir_path = f"{self.project_dir_path}/runtime"
-        self.analysis_dir_path = f"{self.runtime_dir_path}/analysis"
+        self.analysis_dir_path = f"{self.project_dir_path}/analysis"
         self.timeline_path = f"{self.project_dir_path}/timeline.yaml"
         self.source_files_dir_path = (
             f"{self.project_dir_path}/source" if source_files_dir_path is None else source_files_dir_path
@@ -302,9 +302,11 @@ class VideoProject:
 
     @staticmethod
     def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
-        scene: SceneInfo = random.choice(video_node.scenes)
-        start_time = random.random() * (scene.end_time - beat_segment.duration - 0.1)
-        return start_time
+        if len(video_node.scenes) > 0:    
+            scene: SceneInfo = random.choice(video_node.scenes)
+            start_time = random.random() * (scene.end_time - beat_segment.duration - 0.1)
+            return start_time
+        return 0
 
     @staticmethod
     def get_file_name(path: str):

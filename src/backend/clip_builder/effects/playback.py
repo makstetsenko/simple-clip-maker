@@ -30,11 +30,11 @@ def ramp_speed(
 
 def forward_reverse(clip: VideoClip, start_speed: float = 1.0, fast_slow_mode: bool = True) -> VideoClip:
     sub_duration = clip.duration / 2.0
-    sub_clip: VideoClip = clip[0:sub_duration].with_duration(sub_duration)
+    sub_clip: VideoClip = clip.with_speed_scaled(final_duration=sub_duration)
 
     if fast_slow_mode:
         sub_clip = ramp_speed(
-            sub_clip, start_speed=start_speed, end_speed=0, ramps=5, scale_speed_to_original_duration=True
+            sub_clip, start_speed=start_speed, end_speed=0.1, ramps=5, scale_speed_to_original_duration=False
         )
 
     return concatenate_videoclips(

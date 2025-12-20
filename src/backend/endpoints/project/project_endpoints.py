@@ -45,7 +45,7 @@ async def import_media(project_name: str, files: list[UploadFile]):
     project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
 
     for media_file in files:
-        file_name = str(uuid.uuid4()) + "." + Path(media_file.filename).suffix
+        file_name = str(uuid.uuid4()) + Path(media_file.filename).suffix
         write_file_path = Path(project_setup.source_files_dir_path + "/" + file_name)
 
         written = 0
@@ -66,7 +66,7 @@ async def import_media(project_name: str, files: list[UploadFile]):
 async def get_project_media_info(project_name: str):
     project_setup: VideoProjectSetup = VideoProjectSetup.load(project_name)
     files = project_setup.videos_path_list + [project_setup.audio_path]
-    file_names = [Path(f).name for f in files]
+    file_names = [f for f in files if f != "" and f != None]
     return file_names
 
 

@@ -55,16 +55,29 @@ const onSegmentClick = (segmentId: string | null, multiselect: boolean) => {
   }
   if (!multiselect) {
     timelineStore.clearSelectedSegments()
+    timelineStore.appendSelectSegment(segmentId)
+    return
   }
-  timelineStore.appendSelectSegment(segmentId)
+
+  console.log('multiselect')
+
+  if (timelineStore.selectedSegments.length < 1) return
+
+  const firstIndex = timelineStore.selectedSegments[0]!.index!
+  const currentIndex = timelineStore.timeline!.segments.findIndex((x) => x.id === segmentId)
+
+  const start = firstIndex > currentIndex ? currentIndex : firstIndex
+  const end = firstIndex < currentIndex ? currentIndex : firstIndex
+
+  timelineStore.clearSelectedSegments()
+
+  for (let i = start; i <= end; i++) {
+    timelineStore.appendSelectSegmentByIndex(i)
+  }
 }
 
 const onMouseEnterTimeline = () => {
   isMouseOverTimeline.value = true
-
-  if (timelineContainerRef.value) {
-    timelineContainerRef.value.focus()
-  }
 }
 
 const onMouseLeaveTimeline = () => {
@@ -94,12 +107,11 @@ function handleKeyboard(event: KeyboardEvent) {
 }
 
 onMounted(() => {
-  if (!timelineContainerRef.value) return
-  timelineContainerRef.value.addEventListener('keydown', handleKeyboard)
+  document.addEventListener('keydown', handleKeyboard)
 })
 onBeforeUnmount(() => {
   if (!timelineContainerRef.value) return
-  timelineContainerRef.value.removeEventListener('keydown', handleKeyboard)
+  document.removeEventListener('keydown', handleKeyboard)
 })
 
 function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
@@ -107,7 +119,7 @@ function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
   if (segment.index == 0) return
 
   const rect = timelineRef.value.getBoundingClientRect()
-  const segmentTopY = mouseY - rect.top - 5
+  const segmentTopY = mouseY - rect.top
 
   const segmentEndTime = segment.duration + segment.startTime
   const newStartTime = (segmentTopY / timelineHeight.value) * timelineStore.timeline!.duration!
@@ -123,8 +135,8 @@ function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
 
 <style scoped>
 .timeline-item {
-  background: #eee;
   position: relative;
+  background: #515151;
 }
 .timeline-container {
   height: 1000px;
@@ -133,23 +145,15 @@ function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
   width: 250px;
 }
 .timeline {
-  width: 200px;
-  border: 6px solid black;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  background: #f1f1f1;
   position: relative;
-  background: #6fb49c;
 }
 
 .segment-config-container {
 }
 
-.timeline-and-segment-config-grid {
-  display: grid;
-  grid-template-columns: 250px 1fr; /* 30% width + flexible remainder */
-  gap: 10px; /* optional spacing */
-}
 
 .no-select {
   -webkit-user-select: none; /* Safari */

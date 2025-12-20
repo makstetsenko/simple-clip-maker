@@ -2,10 +2,10 @@
   <div>
     <Card>
       <template #title>Project Media</template>
-      <template #subtitle>Total: {{ mediaItems.length }} items</template>
+      <template #subtitle>Total: {{ mediaStore.getMediaNames.length }} items</template>
       <template #content>
-        <Chip v-for="e in mediaItems" :key="e" :label="e" />
-        <div v-if="mediaItems.length == 0">No media imported</div>
+        <Chip v-for="e in mediaStore.getMediaNames" :key="e" :label="e" />
+        <div v-if="mediaStore.getMediaNames.length == 0">No media imported</div>
       </template>
     </Card>
 
@@ -27,12 +27,12 @@ import FileUploading from '@/components/Media/FileUploading.vue'
 import { type FileUploadUploaderEvent } from 'primevue'
 import apiClient from '@/services/apiClient'
 import { useProjectSetupStore } from '@/stores/projectSetup'
-import { onMounted, ref, watch, type Ref } from 'vue'
+import { onMounted, watch } from 'vue'
 import { Card } from 'primevue'
+import { mediaExt, useMediaStore } from '@/stores/mediaStore'
 
-const mediaExt = ['.mp3', '.m4a', '.mp4', '.mov', '.m4v']
 const projectSetupStore = useProjectSetupStore()
-const mediaItems: Ref<string[]> = ref([])
+const mediaStore = useMediaStore()
 
 onMounted(() => {
   reloadMedia()
@@ -60,9 +60,9 @@ async function onUpload(e: FileUploadUploaderEvent) {
 }
 
 async function reloadMedia() {
-  mediaItems.value = []
+  mediaStore.mediaPathList = []
   if (!projectSetupStore.hasSelectedProject) return
   const resp = await apiClient.get(`/api/projects/${projectSetupStore.getProjectName}/media`)
-  mediaItems.value = resp.data
+  mediaStore.mediaPathList = resp.data
 }
 </script>

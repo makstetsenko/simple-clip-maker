@@ -9,13 +9,7 @@
     <template #content>
       <Toolbar v-if="timelineStore.selectedSegments.length > 0">
         <template #start>
-          <Button
-            variant="outlined"
-            @click="splitSelectedSegment"
-            v-if="timelineStore.selectedSegments.length == 1"
-          >
-            Split
-          </Button>
+          <Button variant="outlined" @click="splitSelectedSegment"> Split </Button>
           <Button
             variant="outlined"
             @click="mergeSelectedSegments"
@@ -28,7 +22,7 @@
 
       <Card>
         <template #content>
-          <Slider v-model="timelineZoom" :min="0.25" :max="3" :step="0.05" />
+          <Slider v-model="timelineZoom" :min="0.25" :max="10" :step="0.05" />
         </template>
       </Card>
 
@@ -57,7 +51,11 @@ import Button from 'primevue/button'
 import { useTimelineStore } from '@/stores/timeline'
 import { Card } from 'primevue'
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
-import type { EffectModel, TimelineSegmentModel } from '@/shared/models/TimelineModel'
+import type {
+  EffectModel,
+  SegmentVideoModel,
+  TimelineSegmentModel,
+} from '@/shared/models/TimelineModel'
 
 import Toolbar from 'primevue/toolbar'
 import Slider from 'primevue/slider'
@@ -65,9 +63,7 @@ import Slider from 'primevue/slider'
 const timelineStore = useTimelineStore()
 const projectSetupStore = useProjectSetupStore()
 const generateTimelineLoading: Ref<boolean> = ref(false)
-const allowGenerateTimeline = computed(
-  () => projectSetupStore.hasSelectedProject && !timelineStore.timelineExists,
-)
+const allowGenerateTimeline = computed(() => projectSetupStore.hasSelectedProject)
 
 const timelineZoom: Ref<number> = ref(1.0)
 
@@ -98,8 +94,6 @@ async function reloadTimeline() {
 }
 
 async function onGenerateTimelineClick() {
-  if (timelineStore.timelineExists) return
-
   generateTimelineLoading.value = true
   try {
     await apiClient.post(`/api/${projectSetupStore.getProjectName}/timeline`)
@@ -110,28 +104,42 @@ async function onGenerateTimelineClick() {
 }
 
 function splitSelectedSegment() {
-  const segment = timelineStore.selectedSegments[0]!
+  for (const segment of timelineStore.selectedSegments) {
+    const middleTime = segment.startTime + segment.duration / 2
+    const halfDuration = segment.duration / 2
 
-  const middleTime = segment.startTime + segment.duration / 2
-  const halfDuration = segment.duration / 2
+    const newSegment: TimelineSegmentModel = {
+      id: uuidv4(),
+      index: segment.index + 1,
+      startTime: middleTime,
+      duration: halfDuration,
+      endTime: segment.endTime,
+      splitScreen: segment.splitScreen,
+      effects: segment.effects
+        ? segment.effects.map((x) => ({
+            id: uuidv4(),
+            args: !!x.args ? Object.assign({}, x.args) : null,
+            method: x.method,
+            effectType: x.effectType,
+          }))
+        : null,
+      videos: segment.videos.map(
+        (x) =>
+          ({
+            id: x.id,
+            path: x.path,
+            startTime: x.startTime,
+          }) as SegmentVideoModel,
+      ),
+    }
 
-  const newSegment: TimelineSegmentModel = {
-    id: uuidv4(),
-    index: segment.index + 1,
-    startTime: middleTime,
-    duration: halfDuration,
-    endTime: segment.endTime,
-    splitScreen: segment.splitScreen,
-    effects: segment.effects ? [...segment.effects] : null,
-    videos: [...segment.videos],
+    segment.endTime = middleTime
+    segment.duration = halfDuration
+
+    timelineStore.insertSegmentIntoTimeline(newSegment, newSegment.index)
+
+    timelineStore.reindexSegmentsInTimeline()
   }
-
-  segment.endTime = middleTime
-  segment.duration = halfDuration
-
-  timelineStore.insertSegmentIntoTimeline(newSegment, newSegment.index)
-
-  timelineStore.reindexSegmentsInTimeline()
   timelineStore.clearSelectedSegments()
 }
 
