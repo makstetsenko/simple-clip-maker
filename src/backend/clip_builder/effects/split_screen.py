@@ -93,7 +93,5 @@ def split_screen_clips(
     duration = clips_criteria[0].clip.duration if clip_duration is None else clip_duration
 
     return CompositeVideoClip(
-        clips=positioned_clips,
-        size=(video_width, video_height),
-        bg_color=random.choice(color_presets),
+        clips=positioned_clips, size=(video_width, video_height), bg_color=(0, 0, 0)  # random.choice(color_presets),
     ).with_duration(duration)

@@ -4,6 +4,7 @@ export type Timeline = {
   effects: Effect[]
   segments: TimelineSegment[]
   size: number[]
+  audio_segments: AudioSegment[]
 }
 
 export type Effect = {
@@ -28,4 +29,17 @@ export type SegmentVideo = {
   id: string
   path: string
   start_time: number
+}
+
+export type AudioSegment = {
+  index: number
+  duration: number
+  start_time: number
+  end_time: number
+  energy: number
+  intensity_band: string
+  energy_delta: number
+  trend: string
+  similar_group: number
+  reverse_candidate: boolean
 }

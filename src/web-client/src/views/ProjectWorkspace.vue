@@ -1,7 +1,5 @@
 <template>
-  <Panel v-if="!projectSetupStore.hasSelectedProject">
-      Select project to start work
-  </Panel>
+  <Panel v-if="!projectSetupStore.hasSelectedProject"> Select project to start work </Panel>
 
   <Splitter v-if="projectSetupStore.hasSelectedProject">
     <SplitterPanel :size="15">
@@ -20,9 +18,8 @@
         <TabPanels>
           <TabPanel value="0">
             <SegmentConfig
-              v-for="(s, i) in timelineStore.selectedSegments"
-              :key="s.id"
-              v-model="timelineStore.selectedSegments[i]"
+              v-if="timelineStore.selectedSegments.length > 0"
+              v-model="timelineStore.selectedSegments[0]"
             />
           </TabPanel>
           <TabPanel value="1">

@@ -1,6 +1,13 @@
-import type { Effect, SegmentVideo, Timeline, TimelineSegment } from '@/services/models/Timeline'
+import type {
+  AudioSegment,
+  Effect,
+  SegmentVideo,
+  Timeline,
+  TimelineSegment,
+} from '@/services/models/Timeline'
 import { EffectMethod, EffectType } from '../models/TimelineModel'
 import type {
+  AudioSegmentModel,
   EffectModel,
   SegmentVideoModel,
   TimelineModel,
@@ -13,8 +20,24 @@ export const mapTimeline = (model: TimelineModel): Timeline => {
     duration: model.duration,
     effects: model.effects?.map((x) => mapEffect(x)),
     segments: model.segments.map((x) => mapSegment(x)),
+    audio_segments: model.audioSegments?.map((x) => mapAudioSegment(x)) || [],
     size: [...model.size],
   } as Timeline
+}
+
+export const mapAudioSegment = (model: AudioSegmentModel): AudioSegment => {
+  return {
+    index: model.index,
+    duration: model.duration,
+    start_time: model.startTime,
+    end_time: model.endTime,
+    energy: model.energy,
+    intensity_band: model.intensity_band,
+    energy_delta: model.energyDelta,
+    trend: model.trend,
+    similar_group: model.similar_group,
+    reverse_candidate: model.reverse_candidate,
+  } as AudioSegment
 }
 
 export const mapSegment = (model: TimelineSegmentModel): TimelineSegment => {

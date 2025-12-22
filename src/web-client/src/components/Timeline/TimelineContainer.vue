@@ -15,6 +15,14 @@
             @mouseleave="onMouseLeaveTimeline"
             @onSegmentStartTimeDrag="onSegmentStartTimeDrag"
           />
+
+          <AudioSegment
+            v-for="(a, i) in timelineStore.timeline!.audioSegments"
+            :key="a.index"
+            v-model="timelineStore.timeline!.audioSegments[i]"
+            :timelineHeight="timelineHeight"
+            :timelineDuration="timelineStore.timeline!.duration"
+          />
         </div>
       </div>
 
@@ -28,6 +36,7 @@ import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, type Ref } f
 import TimelineSegment from './TimelineSegment.vue'
 import { useTimelineStore } from '@/stores/timeline'
 import type { TimelineSegmentModel } from '@/shared/models/TimelineModel'
+import AudioSegment from './AudioSegment.vue'
 
 const timelineStore = useTimelineStore()
 const isMouseOverTimeline: Ref<boolean> = ref(false)
@@ -153,7 +162,6 @@ function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
 
 .segment-config-container {
 }
-
 
 .no-select {
   -webkit-user-select: none; /* Safari */

@@ -4,6 +4,20 @@ export interface TimelineModel {
   effects: EffectModel[] | null | undefined
   segments: TimelineSegmentModel[]
   size: number[]
+  audioSegments: AudioSegmentModel[]
+}
+
+export interface AudioSegmentModel {
+  index: number
+  duration: number
+  startTime: number
+  endTime: number
+  energy: number
+  intensity_band: string
+  energyDelta: number
+  trend: string
+  similar_group: number
+  reverse_candidate: boolean
 }
 
 export interface TimelineSegmentModel {

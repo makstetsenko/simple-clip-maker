@@ -10,6 +10,50 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class AudioSegment:
+    index: int
+    duration: float
+    start_time: float
+    end_time: float
+    energy: float
+    intensity_band: str
+    energy_delta: float
+    trend: str
+    similar_group: int
+    reverse_candidate: bool
+
+    def to_dict(self):
+        return {
+            "index": self.index,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration": self.duration,
+            "energy": self.energy,
+            "intensity_band": self.intensity_band,
+            "energy_delta": self.energy_delta,
+            "trend": self.trend,
+            "similar_group": self.similar_group,
+            "reverse_candidate": self.reverse_candidate,
+        }
+
+    @staticmethod
+    def from_dict(value: dict):
+        segment = AudioSegment(
+            index=value["index"],
+            start_time=value["start_time"],
+            end_time=value["end_time"],
+            duration=value["duration"],
+            energy=value["energy"],
+            intensity_band=value["intensity_band"],
+            energy_delta=value["energy_delta"],
+            trend=value["trend"],
+            similar_group=value["similar_group"],
+            reverse_candidate=value["reverse_candidate"],
+        )
+        return segment
+
+
+@dataclass
 class VideoSegmentEffect:
     id: str
     effect_type: EffectType | None
@@ -115,6 +159,7 @@ class TimelineConfig:
     duration: float
     fps: int
     size: tuple[int, int]
+    audio_segments: list[AudioSegment]
 
     def to_dict(self) -> dict:
         return {
@@ -123,6 +168,7 @@ class TimelineConfig:
             "duration": self.duration,
             "effects": [x.to_dict() for x in self.effects] if len(self.effects) > 0 else None,
             "segments": [x.to_dict() for x in self.segments],
+            "audio_segments": [x.to_dict() for x in self.audio_segments],
         }
 
     @staticmethod
@@ -145,6 +191,7 @@ class TimelineConfig:
             segments=segments,
             fps=value["fps"],
             size=(value["size"][0], value["size"][1]),
+            audio_segments=[AudioSegment.from_dict(x) for x in value.get("audio_segments", [])],
         )
 
     def save(self, path: str):
@@ -157,17 +204,12 @@ class TimelineConfig:
         with open(path, "r") as f:
             return TimelineConfig.from_dict(value=yaml.safe_load(f))
 
-
     def copy_to_single_segment_timeline(self, segment_id: str):
-        
+
         segment = [s for s in self.segments if s.id == segment_id][0]
         segment.start_time = 0
         segment.end_time = segment.duration
-        
+
         return TimelineConfig(
-            effects=self.effects,
-            duration=segment.duration,
-            fps=self.fps,
-            segments=[segment],
-            size=self.size
+            effects=self.effects, duration=segment.duration, fps=self.fps, segments=[segment], size=self.size, audio_segments=self.audio_segments
         )

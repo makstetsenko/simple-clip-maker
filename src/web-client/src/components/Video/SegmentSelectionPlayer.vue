@@ -3,7 +3,7 @@
     <video-player
       :src="videoUri"
       :controls="false"
-      :width="350"
+      :width="250"
       :muted="true"
       :loop="true"
       @mounted="handleMounted"

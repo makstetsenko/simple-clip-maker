@@ -14,7 +14,7 @@ export const useMediaStore = defineStore('project-media', {
   actions: {},
   getters: {
     getVideoPathList(state) {
-      return state.mediaPathList.filter((x) => videoExt.some((e) => fileStemFromPath(x) === e))
+      return state.mediaPathList.filter((x) => videoExt.some((e) => fileStemFromPath(x).toLowerCase() === e))
     },
 
     getMediaNames(state) {

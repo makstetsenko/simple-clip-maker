@@ -23,6 +23,7 @@ from .data_analysis.video_analyzer import (
 )
 from .json_cache import JsonCache
 from .timeline_config import (
+    AudioSegment,
     TimelineConfig,
     TimelineSegmentConfig,
     VideoItem,
@@ -234,8 +235,24 @@ class VideoProject:
         video_node = video_analysis[0]
 
         timeline_segments = []
+        audio_segments: list[AudioSegment] = []
         for beat_segment in audio_analysis.beat_segments:
             start_time = self.get_video_start_time(video_node, beat_segment)
+
+            audio_segments.append(
+                AudioSegment(
+                    index=beat_segment.index,
+                    duration=beat_segment.duration,
+                    start_time=beat_segment.start_time,
+                    end_time=beat_segment.end_time,
+                    energy=beat_segment.energy,
+                    intensity_band=beat_segment.intensity_band,
+                    energy_delta=beat_segment.energy_delta,
+                    trend=beat_segment.trend,
+                    similar_group=beat_segment.similar_group,
+                    reverse_candidate=beat_segment.reverse_candidate,
+                )
+            )
 
             if video_node.resolution.matches_aspect_ratio(self.setup.resolution):
 
@@ -278,6 +295,7 @@ class VideoProject:
             fps=self.setup.fps,
             duration=timeline_segments[-1].end_time,
             segments=timeline_segments,
+            audio_segments=audio_segments,
             effects=[
                 VideoSegmentEffect(
                     id=str(uuid.uuid4()),
@@ -302,7 +320,7 @@ class VideoProject:
 
     @staticmethod
     def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
-        if len(video_node.scenes) > 0:    
+        if len(video_node.scenes) > 0:
             scene: SceneInfo = random.choice(video_node.scenes)
             start_time = random.random() * (scene.end_time - beat_segment.duration - 0.1)
             return start_time

@@ -22,42 +22,48 @@
         {{ secondsToTimeSpanFractionalFormat(model?.endTime) }})
       </template>
       <template #content>
-        <Splitter>
+        <Splitter layout="vertical">
           <SplitterPanel>
-            <ScrollPanel style="width: 100%; height: 1000px">
-              <Card :key="v.id" v-for="v in model?.videos">
-                <template #content
-                  ><VideoPlayer
-                    :videoPath="v.path"
-                    :videoSegmentStartTime="v.startTime"
-                    :videoSegmentDuration="model?.duration"
-                    @onSegmentStartTimeChanged="(t) => (v.startTime = t)"
-                    @onSegmentPlayingEnd="onSegmentPlayingEnd"
-                /></template>
+            <ScrollPanel style="width: 100%; height: 600px">
+              <div class="grid">
+                <div class="col-12 md:col-6 lg:col-4" :key="v.id" v-for="v in model?.videos">
+                  <Card>
+                    <template #content
+                      ><VideoPlayer
+                        :videoPath="v.path"
+                        :videoSegmentStartTime="v.startTime"
+                        :videoSegmentDuration="model?.duration"
+                        @onSegmentStartTimeChanged="(t) => (v.startTime = t)"
+                        @onSegmentPlayingEnd="onSegmentPlayingEnd"
+                    /></template>
 
-                <template #footer>
-                  <Button @click="() => onSelectAnotherVideoBtnClick(v.id)" size="small"
-                    >Replace video</Button
-                  >
-                  <Button @click="() => onRemoveVideo(v.id)" size="small" severity="danger"
-                    >Remove</Button
-                  >
-                  <Button
-                    icon="pi pi-arrow-up"
-                    @click="() => onSwapUp(v.id)"
-                    size="small"
-                    variant="text"
-                    severity="contrast"
-                  />
-                  <Button
-                    icon="pi pi-arrow-down"
-                    @click="() => onSwapDown(v.id)"
-                    size="small"
-                    variant="text"
-                    severity="contrast"
-                  />
-                </template>
-              </Card>
+                    <template #footer>
+                      <Button @click="() => onSelectAnotherVideoBtnClick(v.id)" size="small"
+                        >Replace video</Button
+                      >
+                      <Button @click="() => onRemoveVideo(v.id)" size="small" severity="danger"
+                        >Remove</Button
+                      >
+                      <Button
+                        icon="pi pi-arrow-up"
+                        @click="() => onSwapUp(v.id)"
+                        size="small"
+                        variant="text"
+                        severity="contrast"
+                      />
+                      <Button
+                        icon="pi pi-arrow-down"
+                        @click="() => onSwapDown(v.id)"
+                        size="small"
+                        variant="text"
+                        severity="contrast"
+                      />
+                    </template>
+                  </Card>
+                </div>
+              </div>
+              <Button @click="onAddVideo" size="small" severity="success">Add video</Button>
+
             </ScrollPanel>
           </SplitterPanel>
 
@@ -72,9 +78,7 @@
           </SplitterPanel>
         </Splitter>
       </template>
-      <template #footer>
-        <Button @click="onAddVideo" size="small" severity="success">Add video</Button>
-      </template>
+      <template #footer> </template>
     </Card>
 
     <VideoSelectModal v-model="videoSelectModalVisible" @onVideoSelect="onVideoSelect" />
