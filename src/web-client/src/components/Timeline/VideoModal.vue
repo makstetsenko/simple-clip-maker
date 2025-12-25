@@ -8,7 +8,7 @@
       <div class="col-12 md:col-6 lg:col-4" v-for="v in mediaStore.getVideoPathList" :key="v">
         <Card>
           <template #content>
-            <ClipPreviewPlayer :video-path="v" :width="150" :playback-rate="videosPlaybackSpeed" />
+            <ClipPreviewPlayer :video-path="v" :width="150" :playback-rate="videosPlaybackSpeed" :autoplay="true" :muted="true"/>
           </template>
           <template #footer>
             <Button size="small" @click="() => onVideoSelect(v)">Select</Button></template

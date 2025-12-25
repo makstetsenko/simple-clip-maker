@@ -99,7 +99,7 @@
               >Generate preview</Button
             >
             <div v-if="previewVideoPath">
-              <ClipPreviewPlayer :videoPath="previewVideoPath" />
+              <ClipPreviewPlayer :videoPath="previewVideoPath" :muted="true" :autoplay="true" />
             </div>
             <div v-else>No preview</div>
           </SplitterPanel>
