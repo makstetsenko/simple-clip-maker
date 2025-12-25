@@ -7,26 +7,37 @@
     </SplitterPanel>
 
     <SplitterPanel :size="65">
-      <!-- [Video / Segment editing / Media] placeholder -->
+      <Splitter layout="vertical">
+        <SplitterPanel :size="5">
+          <AudioToolbar />
+        </SplitterPanel>
 
-      <Tabs value="0">
-        <TabList>
-          <Tab value="0"> Segment editing </Tab>
-          <Tab value="1"> Media </Tab>
-        </TabList>
+        <SplitterPanel :size="95">
+          <!-- [Video / Segment editing / Media] placeholder -->
 
-        <TabPanels>
-          <TabPanel value="0">
-            <SegmentConfig
-              v-if="timelineStore.selectedSegments.length > 0"
-              v-model="timelineStore.selectedSegments[0]"
-            />
-          </TabPanel>
-          <TabPanel value="1">
-            <MediaManager />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+          <Tabs value="0">
+            <TabList>
+              <Tab value="0"> Segment editing </Tab>
+              <Tab value="1"> Media </Tab>
+              <Tab value="2"> Render </Tab>
+            </TabList>
+
+            <TabPanels>
+              <TabPanel value="0">
+                <SegmentConfig
+                  v-if="timelineStore.selectedSegments.length > 0"
+                  v-model="timelineStore.selectedSegments[0]"
+                />
+              </TabPanel>
+              <TabPanel value="1">
+                <MediaManager />
+              </TabPanel>
+
+              <TabPanel value="2"> <RenderManager /></TabPanel>
+            </TabPanels>
+          </Tabs>
+        </SplitterPanel>
+      </Splitter>
     </SplitterPanel>
 
     <SplitterPanel :size="20">
@@ -64,6 +75,8 @@ import TimelineConfigurator from './TimelineConfigurator.vue'
 import MediaManager from './MediaManager.vue'
 import SegmentConfig from '@/components/Timeline/SegmentEditing.vue'
 import EffectsSelector from '@/components/Effects/EffectsSelector.vue'
+import RenderManager from './RenderManager.vue'
+import AudioToolbar from './AudioToolbar.vue'
 
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'

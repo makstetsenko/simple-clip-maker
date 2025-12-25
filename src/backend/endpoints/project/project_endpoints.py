@@ -83,7 +83,9 @@ async def render_project(project_name: str, debug: bool = False):
     project_setup.clear_runtime_dirs()
     clip_path = await clip_builder.build_clip(timeline_config)
 
-    project.save_clip_with_audio(clip_path=clip_path)
+    output_clip_path = project.save_clip_with_audio(clip_path=clip_path)
+    
+    return output_clip_path
 
 
 @router.post("/{project_name}/segment/{segment_id}/render/preview")

@@ -12,9 +12,11 @@
         <ToggleButton
           v-model="model!.splitScreen"
           onLabel="Split screen"
-          offLabel="Normal"
+          offLabel="Single frame"
           size="small"
         />
+
+        <Button @click="onAddVideo" size="small" severity="success">Add video</Button>
       </template>
       <template #subtitle>
         {{ secondsToTimeSpanFractionalFormat(model?.duration) }}
@@ -38,32 +40,57 @@
                     /></template>
 
                     <template #footer>
-                      <Button @click="() => onSelectAnotherVideoBtnClick(v.id)" size="small"
-                        >Replace video</Button
-                      >
-                      <Button @click="() => onRemoveVideo(v.id)" size="small" severity="danger"
-                        >Remove</Button
-                      >
-                      <Button
-                        icon="pi pi-arrow-up"
-                        @click="() => onSwapUp(v.id)"
-                        size="small"
-                        variant="text"
-                        severity="contrast"
-                      />
-                      <Button
-                        icon="pi pi-arrow-down"
-                        @click="() => onSwapDown(v.id)"
-                        size="small"
-                        variant="text"
-                        severity="contrast"
-                      />
+                      <div class="grid">
+                        <div class="col">
+                          <Button
+                            @click="() => onRemoveVideo(v.id)"
+                            icon="pi pi-trash"
+                            size="small"
+                            severity="danger"
+                            variant="text"
+                          />
+                        </div>
+                        <div class="col">
+                          <Button
+                            @click="() => onSelectAnotherVideoBtnClick(v.id)"
+                            icon="pi pi-replay"
+                            size="small"
+                            variant="text"
+                            severity="contrast"
+                          />
+                        </div>
+                        <div class="col">
+                          <Button
+                            icon="pi pi-arrow-left"
+                            @click="() => onSwapUp(v.id)"
+                            size="small"
+                            variant="text"
+                            severity="contrast"
+                          />
+                        </div>
+                        <div class="col">
+                          <Button
+                            icon="pi pi-arrow-right"
+                            @click="() => onSwapDown(v.id)"
+                            size="small"
+                            variant="text"
+                            severity="contrast"
+                          />
+                        </div>
+                        <div class="col">
+                          <Button
+                            icon="pi pi-clone"
+                            @click="() => onDuplicateClick(v.id)"
+                            size="small"
+                            variant="text"
+                            severity="contrast"
+                          />
+                        </div>
+                      </div>
                     </template>
                   </Card>
                 </div>
               </div>
-              <Button @click="onAddVideo" size="small" severity="success">Add video</Button>
-
             </ScrollPanel>
           </SplitterPanel>
 
@@ -204,6 +231,19 @@ function onSwapDown(videoId: string) {
 
   const video = model.value.videos.splice(index, 1)[0]!
   model.value.videos.splice(index + 1, 0, video)
+}
+
+function onDuplicateClick(videoId: string) {
+  if (!model.value) return
+  const index = model.value.videos.findIndex((x) => x.id === videoId)
+
+  const newVideo: SegmentVideoModel = {
+    id: uuidv4(),
+    path: model.value.videos[index]!.path,
+    startTime: model.value.videos[index]!.startTime,
+  }
+
+  model.value.videos.splice(index + 1, 0, newVideo)
 }
 </script>
 

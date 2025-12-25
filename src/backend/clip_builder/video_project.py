@@ -169,7 +169,7 @@ class VideoProject:
             temp_path=self.setup.runtime_dir_path,
         )
 
-    def save_clip_with_audio(self, clip_path):
+    def save_clip_with_audio(self, clip_path) -> str:
         output_clip_path = f"{self.setup.project_dir_path}/output.mp4"
 
         logger.info(f"Saving clip {output_clip_path}")
@@ -177,6 +177,7 @@ class VideoProject:
         clip = VideoFileClip(clip_path)
         clip.write_videofile(output_clip_path, audio=self.setup.audio_path, audio_codec="aac", fps=self.setup.fps)
         clip.close()
+        return output_clip_path
 
     def get_audio_analysis(self) -> AudioAnalyzeResult:
         logger.info(f"Analyzing audio {self.get_file_name(self.setup.audio_path)}")

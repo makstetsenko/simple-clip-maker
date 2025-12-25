@@ -342,15 +342,15 @@ const map = new Map<EffectType, Map<EffectMethod, EffectArg>>([
         EffectMethod.RAMP_SPEED_SEGMENTS,
         {
           default: {
-            speeds: [1, 2],
             scale_speed_to_original_duration: true,
-            ramps_count_between_speed: 0,
+            ramps_count_between_speed: 5,
+            speeds: [1, 1],
           },
           props: [
             {
-              key: 'speeds',
-              label: 'Speeds',
-              propType: ArgPropType.NumberArray,
+              key: 'ramps_count_between_speed',
+              label: 'Ramps between speeds',
+              propType: ArgPropType.Number,
             },
             {
               key: 'scale_speed_to_original_duration',
@@ -358,9 +358,9 @@ const map = new Map<EffectType, Map<EffectMethod, EffectArg>>([
               propType: ArgPropType.Bool,
             },
             {
-              key: 'ramps_count_between_speed',
-              label: 'Ramps between speeds',
-              propType: ArgPropType.Number,
+              key: 'speeds',
+              label: 'Speeds',
+              propType: ArgPropType.NumberArray,
             },
           ],
         },

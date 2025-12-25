@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import type { TimelineModel, TimelineSegmentModel } from '@/shared/models/TimelineModel'
+import { mapTimeline } from '@/shared/mappers/timelineMapper'
+import apiClient from '@/services/apiClient'
 
 interface TimelineStoreState {
   timeline: TimelineModel | null
-  selectedSegments: TimelineSegmentModel[],
+  selectedSegments: TimelineSegmentModel[]
   autoScrollOn: boolean
 }
 
@@ -12,7 +14,7 @@ export const useTimelineStore = defineStore('timeline', {
     return {
       timeline: null,
       selectedSegments: [],
-      autoScrollOn: false
+      autoScrollOn: false,
     }
   },
   actions: {
@@ -41,6 +43,13 @@ export const useTimelineStore = defineStore('timeline', {
       for (let i = 0; i < this.timeline.segments.length; i++) {
         this.timeline.segments[i]!.index = i
       }
+    },
+    async upsert(projectName: string) {
+      if (!this.timelineExists) return
+      const timelineObj = mapTimeline(this.timeline!)
+
+      const url = `/api/${projectName}/timeline/upsert`
+      await apiClient.post(url, timelineObj)
     },
   },
   getters: {

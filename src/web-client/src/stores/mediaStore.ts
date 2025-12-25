@@ -1,10 +1,18 @@
 import { defineStore } from 'pinia'
 
 const videoExt = ['.mp4', '.mov', '.m4v']
-export const mediaExt = ['.mp3', '.m4a', ...videoExt]
+const audioExt = ['.mp3', '.m4a']
+export const mediaExt = [...audioExt, ...videoExt]
 
 interface MediaStore {
   mediaPathList: string[]
+}
+
+export interface MediaName {
+  name: string
+  ext: string
+  path: string
+  isVideo: boolean
 }
 
 export const useMediaStore = defineStore('project-media', {
@@ -14,11 +22,23 @@ export const useMediaStore = defineStore('project-media', {
   actions: {},
   getters: {
     getVideoPathList(state) {
-      return state.mediaPathList.filter((x) => videoExt.some((e) => fileStemFromPath(x).toLowerCase() === e))
+      return state.mediaPathList.filter((x) =>
+        videoExt.some((e) => fileExtFromPath(x).toLowerCase() === e),
+      )
+    },
+    getAudioPathList(state) {
+      return state.mediaPathList.filter((x) =>
+        audioExt.some((e) => fileExtFromPath(x).toLowerCase() === e),
+      )
     },
 
-    getMediaNames(state) {
-      return state.mediaPathList.map((x) => fileNameFromPath(x))
+    getMediaNames(state): MediaName[] {
+      return state.mediaPathList.map((x) => ({
+        name: fileNameFromPath(x),
+        ext: fileExtFromPath(x).toLowerCase(),
+        path: x,
+        isVideo: videoExt.some((e) => fileExtFromPath(x).toLowerCase() === e),
+      })) as MediaName[]
     },
   },
 })
@@ -34,11 +54,11 @@ export function fileNameFromPath(p: string): string {
   return noTrailing.split('/').pop() ?? ''
 }
 
-export function fileStemFromPath(p: string): string {
+export function fileExtFromPath(p: string): string {
   const name = fileNameFromPath(p)
-  const match = name.match(/\.([^.]+)$/);
-  const a = match ? `.${match[1]}` : "";
-  console.log(a);
+  const match = name.match(/\.([^.]+)$/)
+  const a = match ? `.${match[1]}` : ''
+  console.log(a)
 
   return a
 }

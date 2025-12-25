@@ -1,6 +1,6 @@
 <template>
-  <div v-if="model && Object.keys(model).length > 0">
-    <template v-for="d in descriptors">
+  <div class="grid" v-if="model && Object.keys(model).length > 0">
+    <div class="col-6" v-for="d in descriptors" :key="d.key">
       <!-- Number input -->
 
       <FloatLabel variant="on" :key="d.key" v-if="d.propType === ArgPropType.Number">
@@ -40,7 +40,7 @@
           size="small"
         />
       </div>
-    </template>
+    </div>
   </div>
 </template>
 

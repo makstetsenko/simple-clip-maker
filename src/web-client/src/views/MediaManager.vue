@@ -4,7 +4,25 @@
       <template #title>Project Media</template>
       <template #subtitle>Total: {{ mediaStore.getMediaNames.length }} items</template>
       <template #content>
-        <Chip v-for="e in mediaStore.getMediaNames" :key="e" :label="e" />
+        <div class="grid">
+          <div class="col-2" v-for="e in mediaStore.getMediaNames" :key="e.name">
+            <div class="grid">
+              <div class="col-12">
+                <Chip :label="e.name" :style="{ background: chipColor.get(e.ext) }" />
+              </div>
+              <div class="col-12">
+                <ClipPreviewPlayer
+                  :video-path="e.path"
+                  :playback-rate="1"
+                  :width="150"
+                  :volume-panel="!e.isVideo"
+                  :muted="true"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div v-if="mediaStore.getMediaNames.length == 0">No media imported</div>
       </template>
     </Card>
@@ -30,6 +48,7 @@ import { useProjectSetupStore } from '@/stores/projectSetup'
 import { onMounted, watch } from 'vue'
 import { Card } from 'primevue'
 import { mediaExt, useMediaStore } from '@/stores/mediaStore'
+import ClipPreviewPlayer from '@/components/Video/ClipPreviewPlayer.vue'
 
 const projectSetupStore = useProjectSetupStore()
 const mediaStore = useMediaStore()
@@ -44,6 +63,14 @@ watch(
     reloadMedia()
   },
 )
+
+const chipColor: Map<string, string> = new Map([
+  ['.mp3', '#548275'],
+  ['.m4a', '#548275'],
+  ['.mp4', '#666ea4'],
+  ['.mov', '#666ea4'],
+  ['.m4v', '#666ea4'],
+])
 
 async function onUpload(e: FileUploadUploaderEvent) {
   if (!projectSetupStore.hasSelectedProject) return

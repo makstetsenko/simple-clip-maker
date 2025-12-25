@@ -19,15 +19,7 @@
           variant="outlined"
           >Save</Button
         >
-        <Button
-          severity="help"
-          @click="renderProject"
-          :loading="renderingInProgress"
-          variant="outlined"
-          v-if="projectSetupStore.hasSelectedProject"
-        >
-          Render
-        </Button>
+
         <ToggleButton
           v-model="projectSetupStore.debugMode"
           onLabel="DEBUG ON"
@@ -54,11 +46,9 @@ import { onMounted, ref, type Ref } from 'vue'
 import Chip from 'primevue/chip'
 import Button from 'primevue/button'
 import { useTimelineStore } from '@/stores/timeline'
-import { mapTimeline } from '@/shared/mappers/timelineMapper'
 import ToggleButton from 'primevue/togglebutton'
 
 const newProjectModalVisible: Ref<boolean> = ref(false)
-const renderingInProgress: Ref<boolean> = ref(false)
 
 const projectSetupStore = useProjectSetupStore()
 const timelineStore = useTimelineStore()
@@ -118,25 +108,7 @@ function onProjectSelectClick(project: ProjectModel) {
   timelineStore.clearSelectedSegments()
 }
 
-async function renderProject() {
-  if (!projectSetupStore.hasSelectedProject) return
-
-  renderingInProgress.value = true
-  try {
-    await upsertTimeline()
-    await apiClient.post(
-      `/api/projects/${projectSetupStore.getProjectName}/render?debug=${projectSetupStore.debugMode}`,
-    )
-  } finally {
-    renderingInProgress.value = false
-  }
-}
-
 async function upsertTimeline() {
-  if (!timelineStore.timelineExists) return
-  const timelineObj = mapTimeline(timelineStore.timeline!)
-
-  const url = `/api/${projectSetupStore.getProjectName}/timeline/upsert`
-  await apiClient.post(url, timelineObj)
+  await timelineStore.upsert(projectSetupStore.getProjectName!)
 }
 </script>

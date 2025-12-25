@@ -4,10 +4,25 @@
       :src="videoUri"
       :controls="true"
       :width="width ?? 350"
-      :muted="true"
+      :height="height"
+      :muted="muted ?? true"
       :loop="true"
-      :autoplay="true"
+      :autoplay="autoplay ?? true"
       @mounted="handleMounted"
+      :control-bar="{
+        audioTrackButton: false,
+        captionsButton: false,
+        chaptersButton: false,
+        descriptionsButton: false,
+        remainingTimeDisplay: false,
+        pictureInPictureToggle: false,
+        fullscreenToggle: false,
+        playToggle: playToggle ?? false,
+        volumePanel: volumePanel ?? false,
+      }"
+      :inactivity-timeout="60_000"
+      :playback-rate="playbackRate ?? 1"
+      @seeked="onSeeked"
     />
   </div>
 </template>
@@ -23,10 +38,17 @@ type VideoJsPlayer = ReturnType<typeof videojs>
 
 const player = shallowRef<VideoJsPlayer>()
 const state = shallowRef<VideoPlayerState>()
+const emits = defineEmits(['onSeeked'])
 
 const props = defineProps({
   videoPath: String,
-  width: Number
+  width: Number,
+  playbackRate: Number,
+  volumePanel: Boolean,
+  muted: Boolean,
+  height: Number,
+  playToggle: Boolean,
+  autoplay: Boolean
 })
 
 const videoUri = computed(() =>
@@ -41,6 +63,13 @@ const handleMounted = (payload: {
 }) => {
   player.value = payload.player
   state.value = payload.state
+}
+
+function onSeeked() {
+  if (!player.value) return
+
+  const currentTime = player.value.currentTime()
+  emits('onSeeked', currentTime)
 }
 </script>
 

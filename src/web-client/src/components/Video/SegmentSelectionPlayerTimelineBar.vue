@@ -1,16 +1,29 @@
 <template>
   <div class="timeline-root">
-    <button v-if="!isPlaying" class="play-btn" type="button" @click="onPlay">
-      <span class="play-icon">▶</span>
-    </button>
-    <button v-if="isPlaying" class="pause-btn" type="button" @click="onPause">
-      <span class="pause-icon">||</span>
-    </button>
+    <Button
+      v-if="!isPlaying"
+      icon="pi pi-play"
+      size="small"
+      variant="text"
+      severity="contrast"
+      class="control-btn play-btn"
+      @click="onPlay"
+    />
+    <Button
+      v-if="isPlaying"
+      icon="pi pi-pause"
+      size="small"
+      variant="text"
+      severity="contrast"
+      class="control-btn pause-btn"
+      @click="onPause"
+    />
 
     <div
       class="timeline-area"
       ref="timeline-area"
       @mousemove="onTimelineAreaMouseMove"
+      @mouseleave="onTimelineAreaMouseLeave"
       @click="onTimelineAreaMouseClick"
     >
       <div class="track">
@@ -35,6 +48,7 @@
 <script setup lang="ts">
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
 import { ref, useTemplateRef, type Ref, computed, watch, onMounted } from 'vue'
+import Button from 'primevue/button'
 
 const props = defineProps({
   duration: Number,
@@ -122,6 +136,10 @@ const onTimelineAreaMouseMove = (e: MouseEvent) => {
   emits('onSeeked', seekHeadTime.value)
 }
 
+const onTimelineAreaMouseLeave = () => {
+  emits('onSeeked', segmentHeadStartTime.value)
+}
+
 const onTimelineAreaMouseClick = (e: MouseEvent) => {
   setSeekHeadTime(e)
   moveSegmentIfAllowed(e)
@@ -183,25 +201,25 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #a97f7f;
-  margin-top: 24px;
+  background: #3c4962;
+  margin-top: 34px;
   margin-bottom: 24px;
+  border-radius: 6px;
 }
 
-.play-btn {
+.control-btn {
   flex: 0 0 auto;
+  margin-left: 10px;
 }
 
 .timeline-area {
   flex: 1 1 auto;
   min-width: 0;
-  background: #c5b380;
 }
 
 .track {
   position: relative;
   height: 60px;
-  background: #7fa988;
 }
 
 .segment {
@@ -217,7 +235,6 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   top: 0;
   bottom: 0;
   transform: translateX(-50%);
-  background: #ff0000;
 }
 
 .playback-head {
@@ -225,7 +242,6 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   top: 0;
   bottom: 0;
   transform: translateX(-50%);
-  background: #1c0000;
 }
 
 .playhead-label {
@@ -233,7 +249,10 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   top: -30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #ff0000;
+  background: #ffc508;
+  color: black;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .playhead-line {
@@ -243,7 +262,8 @@ const moveSegmentIfAllowed = (e: MouseEvent) => {
   left: 50%;
   transform: translateX(-50%);
   width: 6px;
-  background: #ff0000;
+  background: #ffc508;
+  border-radius: 4px;
 }
 
 .playback-line {
