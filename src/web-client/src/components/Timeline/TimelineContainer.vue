@@ -37,6 +37,7 @@ import TimelineSegment from './TimelineSegment.vue'
 import { useTimelineStore } from '@/stores/timeline'
 import type { TimelineSegmentModel } from '@/shared/models/TimelineModel'
 import AudioSegment from './AudioSegment.vue'
+import { v4 as uuidv4 } from 'uuid'
 
 const timelineStore = useTimelineStore()
 const isMouseOverTimeline: Ref<boolean> = ref(false)
@@ -135,10 +136,12 @@ function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
 
   segment.startTime = newStartTime
   segment.duration = segmentEndTime - newStartTime
+  segment.etag = uuidv4()
 
   const segmentAbove = timelineStore.timeline!.segments[segment.index - 1]!
   segmentAbove.endTime = segment.startTime
   segmentAbove.duration = segment.startTime - segmentAbove.startTime
+  segmentAbove.etag = uuidv4()
 }
 </script>
 

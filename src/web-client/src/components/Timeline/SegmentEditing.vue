@@ -35,7 +35,7 @@
                         :videoPath="v.path"
                         :videoSegmentStartTime="v.startTime"
                         :videoSegmentDuration="model?.duration"
-                        @onSegmentStartTimeChanged="(t) => (v.startTime = t)"
+                        @onSegmentStartTimeChanged="(t) => onSegmentStartTimeChanged(v, t)"
                         @onSegmentPlayingEnd="onSegmentPlayingEnd"
                     /></template>
 
@@ -186,6 +186,7 @@ function onRemoveVideo(videoId: string) {
   if (videoIndex < 0) return
 
   model.value.videos.splice(videoIndex, 1)
+  model.value.etag = uuidv4()
 }
 
 function onVideoSelect(videoPath: string) {
@@ -207,6 +208,7 @@ function onVideoSelect(videoPath: string) {
   if (videoIndex < 0) return
 
   model.value.videos.splice(videoIndex, 1, newVideo)
+  model.value.etag = uuidv4()
 }
 
 function onAddVideo() {
@@ -222,6 +224,7 @@ function onSwapUp(videoId: string) {
 
   const video = model.value.videos.splice(index, 1)[0]!
   model.value.videos.splice(index - 1, 0, video)
+  model.value.etag = uuidv4()
 }
 function onSwapDown(videoId: string) {
   if (!model.value) return
@@ -231,6 +234,7 @@ function onSwapDown(videoId: string) {
 
   const video = model.value.videos.splice(index, 1)[0]!
   model.value.videos.splice(index + 1, 0, video)
+  model.value.etag = uuidv4()
 }
 
 function onDuplicateClick(videoId: string) {
@@ -244,6 +248,14 @@ function onDuplicateClick(videoId: string) {
   }
 
   model.value.videos.splice(index + 1, 0, newVideo)
+  model.value.etag = uuidv4()
+}
+
+function onSegmentStartTimeChanged(video: SegmentVideoModel, time: number) {
+  if (!model.value) return
+
+  video.startTime = time
+  model.value.etag = uuidv4()
 }
 </script>
 

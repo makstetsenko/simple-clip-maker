@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
 from typing import Self
+import uuid
 
 import yaml
 
@@ -123,6 +124,7 @@ class TimelineSegmentConfig:
     is_split_screen: bool
     start_time: float
     end_time: float
+    etag: str
 
     def to_dict(self) -> dict:
         return {
@@ -134,6 +136,7 @@ class TimelineSegmentConfig:
             "is_split_screen": self.is_split_screen,
             "effects": [e.to_dict() for e in self.effects] if len(self.effects) > 0 else None,
             "videos": [v.to_dict() for v in self.videos],
+            "etag": self.etag,
         }
 
     @staticmethod
@@ -149,6 +152,7 @@ class TimelineSegmentConfig:
             is_split_screen=value.get("is_split_screen", False),
             videos=[VideoItem.from_dict(j) for j in value["videos"]],
             effects=[VideoSegmentEffect.from_dict(j) for j in effects] if effects is not None else [],
+            etag=value.get("etag"),
         )
 
 
@@ -209,7 +213,13 @@ class TimelineConfig:
         segment = [s for s in self.segments if s.id == segment_id][0]
         segment.start_time = 0
         segment.end_time = segment.duration
+        segment.etag = str(uuid.uuid4())
 
         return TimelineConfig(
-            effects=self.effects, duration=segment.duration, fps=self.fps, segments=[segment], size=self.size, audio_segments=self.audio_segments
+            effects=self.effects,
+            duration=segment.duration,
+            fps=self.fps,
+            segments=[segment],
+            size=self.size,
+            audio_segments=self.audio_segments,
         )

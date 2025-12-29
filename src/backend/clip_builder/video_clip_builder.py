@@ -1,12 +1,12 @@
 import asyncio
 import logging
-from asyncio import Future
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
-import yaml
 from moviepy import ColorClip, VideoClip, VideoFileClip, vfx, concatenate_videoclips, TextClip, CompositeVideoClip
 from tqdm import tqdm
+import pathlib
+import subprocess
+
 
 from .effect_presets import crop as crop_effect_preset
 from .effect_presets import flash as flash_effect_preset
@@ -32,16 +32,28 @@ class VideoClipBuilder:
 
     async def build_clip(self, config: TimelineConfig) -> str:
         segments = await self.build_segment_clips(config)
-        clips = [VideoFileClip(s) for s in segments]
 
-        chained_clip_path = f"{self.temp_path}/chained_clip.mp4"
-        chained_clip = concatenate_videoclips(clips=clips, method="compose")
-        self.write_video_file(chained_clip, chained_clip_path)
+        list_file = pathlib.Path(pathlib.Path(self.temp_path).joinpath("concat_list.txt"))
+        list_file.write_text("\n".join([f"file '{pathlib.Path(p).resolve()}'" for p in segments]) + "\n")
 
-        for c in clips:
-            c.close()
+        chained_clip_path = str(pathlib.Path(self.temp_path).joinpath("chained_clip.mp4").resolve())
 
-        chained_clip.close()
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(list_file.resolve()),
+                "-c",
+                "copy",
+                chained_clip_path,
+            ],
+            check=True,
+        )
 
         return chained_clip_path
 
@@ -64,20 +76,24 @@ class VideoClipBuilder:
 
         progress_bar = tqdm(total=len(config.segments))
         progress_bar.set_description("Building segments")
-        segment_clips: list[tuple[int, str]] = []
+        segment_clips: list[str] = []
 
         try:
             for segment in config.segments:
-                if segment.is_split_screen:
-                    res = await self.write_spit_screen_clip(self.temp_path, segment, config.effects)
-                else:
-                    res = await self.write_single_panel_clip(self.temp_path, segment, config.effects)
+                segment_clip_path = f"{self.temp_path}/{segment.etag}.mp4"
 
-                segment_clips.append(res)
+                segment_clips.append(segment_clip_path)
                 progress_bar.update(1)
 
-            segment_clips.sort(key=lambda x: x[0])
-            return [s[1] for s in segment_clips]
+                if pathlib.Path(segment_clip_path).exists():
+                    continue
+
+                if segment.is_split_screen:
+                    await self.write_spit_screen_clip(segment_clip_path, segment, config.effects)
+                else:
+                    await self.write_single_panel_clip(segment_clip_path, segment, config.effects)
+
+            return segment_clips
 
         finally:
             progress_bar.close()
@@ -91,18 +107,16 @@ class VideoClipBuilder:
 
         subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration)
 
-        segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
-
         segment_clip = self.apply_effects(subclip, global_effects + segment_config.effects)
         segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-        self.write_video_file(segment_clip, segment_clip_path)
+        self.write_video_file(segment_clip, path)
 
         segment_clip.close()
         subclip.close()
         merged_clip.close()
 
         await asyncio.sleep(0)
-        return (segment_config.index, segment_clip_path)
+        return (segment_config.index, path)
 
     async def write_spit_screen_clip(
         self, path: str, segment_config: TimelineSegmentConfig, global_effects: list[VideoSegmentEffect]
@@ -110,8 +124,6 @@ class VideoClipBuilder:
 
         if segment_config.videos is None or len(segment_config.videos) == 0:
             raise Exception("Videos list is empty or null")
-
-        segment_clip_path = f"{path}/segment_{segment_config.index}.mp4"
 
         if len(segment_config.videos) == 1:
             video = segment_config.videos[0]
@@ -147,13 +159,13 @@ class VideoClipBuilder:
 
             segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
             segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-            self.write_video_file(segment_clip, segment_clip_path)
+            self.write_video_file(segment_clip, path)
 
             subclipped.close()
             clip.close()
 
             await asyncio.sleep(0)
-            return (segment_config.index, segment_clip_path)
+            return (segment_config.index, path)
 
         if len(segment_config.videos) == 2:
             video_1 = segment_config.videos[0]
@@ -194,7 +206,7 @@ class VideoClipBuilder:
 
             segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
             segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-            self.write_video_file(segment_clip, segment_clip_path)
+            self.write_video_file(segment_clip, path)
 
             subclipped_1.close()
             subclipped_2.close()
@@ -202,7 +214,7 @@ class VideoClipBuilder:
             clip_2.close()
 
             await asyncio.sleep(0)
-            return (segment_config.index, segment_clip_path)
+            return (segment_config.index, path)
 
         position_layout = (
             (1, len(segment_config.videos)) if self.resolution.is_vertical else (len(segment_config.videos), 1)
@@ -230,13 +242,13 @@ class VideoClipBuilder:
 
         segment_clip = self.apply_effects(segment_clip, global_effects + segment_config.effects)
         segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
-        self.write_video_file(segment_clip, segment_clip_path)
+        self.write_video_file(segment_clip, path)
 
         for c in subclips + clips:
             c.close()
 
         await asyncio.sleep(0)
-        return (segment_config.index, segment_clip_path)
+        return (segment_config.index, path)
 
     def get_clip_padding(self, duration: float):
         requires_frame_drift = duration <= 0.55
@@ -369,9 +381,9 @@ class VideoClipBuilder:
 
             text_clip_overlay = (
                 TextClip(
-                    text=str(segment_config.index),
+                    text=str(round(segment_config.start_time, 3)),
                     text_align="left",
-                    font_size=26,
+                    font_size=14,
                     size=(60, 60),
                     duration=segment_config.duration,
                 )

@@ -25,6 +25,7 @@
           onLabel="DEBUG ON"
           offLabel="debug off"
           size="small"
+          @value-change="onDebugModeChange"
         />
       </template>
     </Menubar>
@@ -47,6 +48,7 @@ import Chip from 'primevue/chip'
 import Button from 'primevue/button'
 import { useTimelineStore } from '@/stores/timeline'
 import ToggleButton from 'primevue/togglebutton'
+import { v4 as uuidv4 } from 'uuid'
 
 const newProjectModalVisible: Ref<boolean> = ref(false)
 
@@ -110,5 +112,13 @@ function onProjectSelectClick(project: ProjectModel) {
 
 async function upsertTimeline() {
   await timelineStore.upsert(projectSetupStore.getProjectName!)
+}
+
+function onDebugModeChange() {
+  if (!timelineStore.timeline) return
+
+  timelineStore.timeline.segments.forEach(s => {
+    s.etag = uuidv4()
+  });
 }
 </script>

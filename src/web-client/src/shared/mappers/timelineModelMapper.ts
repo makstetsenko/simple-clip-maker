@@ -13,6 +13,7 @@ import type {
   TimelineModel,
   TimelineSegmentModel,
 } from '../models/TimelineModel'
+import { v4 as uuidv4 } from 'uuid'
 
 export const mapTimelineModel = (timelineConfig: Timeline): TimelineModel => {
   return {
@@ -35,6 +36,7 @@ export const mapSegmentModel = (segment: TimelineSegment): TimelineSegmentModel 
     splitScreen: segment.is_split_screen,
     videos: segment.videos.map((v) => mapVideoModel(v)),
     effects: segment.effects?.map((e) => mapEffectModel(e)) || [],
+    etag: segment.etag ?? uuidv4(),
   } as TimelineSegmentModel
 }
 

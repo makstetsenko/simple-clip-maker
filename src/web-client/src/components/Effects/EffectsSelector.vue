@@ -27,10 +27,12 @@ import { getEffectArgDescriptor } from './effectArgsDescriptors'
 
 const effectItems = defineModel<EffectModel[] | null>()
 const effectsStore = useEffectsStore()
+const emits = defineEmits(['onEffectChange'])
 
 function onRemove(id: string) {
   const index = effectItems.value!.findIndex((x) => x.id === id)
   effectItems.value?.splice(index, 1)
+  emits('onEffectChange')
 }
 
 function onNewClick() {
@@ -47,16 +49,19 @@ function onNewClick() {
     method: method,
     args: getEffectArgDescriptor(effectType, method).default,
   })
+  emits('onEffectChange')
 }
 
 function onDuplicate(e: EffectModel) {
   effectsStore.rememberEffect(e)
   effectItems.value?.push(effectsStore.pasteAsNewEffect()!)
+  emits('onEffectChange')
 }
 
 function onPasteClick() {
   if (!effectsStore.rememberedEffect) return
   effectItems.value?.push(effectsStore.pasteAsNewEffect()!)
+  emits('onEffectChange')
 }
 
 function onSwapUp(effectId: string) {
@@ -67,6 +72,7 @@ function onSwapUp(effectId: string) {
 
   const effect = effectItems.value.splice(index, 1)[0]!
   effectItems.value.splice(index - 1, 0, effect)
+  emits('onEffectChange')
 }
 function onSwapDown(effectId: string) {
   if (!effectItems.value) return
@@ -76,5 +82,6 @@ function onSwapDown(effectId: string) {
 
   const effect = effectItems.value.splice(index, 1)[0]!
   effectItems.value.splice(index + 1, 0, effect)
+  emits('onEffectChange')
 }
 </script>

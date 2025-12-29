@@ -7,6 +7,9 @@ import random
 import shutil
 from typing import Self
 import uuid
+import subprocess
+import pathlib
+
 
 import yaml
 from moviepy import VideoFileClip
@@ -170,13 +173,36 @@ class VideoProject:
         )
 
     def save_clip_with_audio(self, clip_path) -> str:
-        output_clip_path = f"{self.setup.project_dir_path}/output.mp4"
+        output_clip_path = str(
+            pathlib.Path(self.setup.project_dir_path).joinpath(f"output-{str(uuid.uuid4())}.mp4").resolve()
+        )
+        clip_full_path = str(pathlib.Path(clip_path).resolve())
+        audio_full_path = str(pathlib.Path(self.setup.audio_path).resolve())
 
         logger.info(f"Saving clip {output_clip_path}")
 
-        clip = VideoFileClip(clip_path)
-        clip.write_videofile(output_clip_path, audio=self.setup.audio_path, audio_codec="aac", fps=self.setup.fps)
-        clip.close()
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                clip_full_path,
+                "-i",
+                audio_full_path,
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-c:v",
+                "copy",  # no re-encode video
+                "-c:a",
+                "aac",
+                "-shortest",
+                output_clip_path,
+            ],
+            check=True,
+        )
+
         return output_clip_path
 
     def get_audio_analysis(self) -> AudioAnalyzeResult:
@@ -267,6 +293,7 @@ class VideoProject:
                         duration=beat_segment.duration,
                         start_time=beat_segment.start_time,
                         end_time=beat_segment.end_time,
+                        etag=str(uuid.uuid4()),
                     )
                 )
             else:
@@ -286,6 +313,7 @@ class VideoProject:
                         duration=beat_segment.duration,
                         start_time=beat_segment.start_time,
                         end_time=beat_segment.end_time,
+                        etag=str(uuid.uuid4()),
                     )
                 )
 

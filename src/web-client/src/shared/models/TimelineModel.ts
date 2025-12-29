@@ -29,6 +29,7 @@ export interface TimelineSegmentModel {
   splitScreen: boolean
   effects: EffectModel[] | null | undefined
   videos: SegmentVideoModel[]
+  etag: string
 }
 
 export interface EffectModel {

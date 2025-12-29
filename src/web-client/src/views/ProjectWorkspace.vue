@@ -54,12 +54,14 @@
             <EffectsSelector
               v-if="timelineStore.selectedSegments.length > 0"
               v-model="timelineStore.selectedSegments[0]!.effects"
+              @on-effect-change="onSegmentEffectChange"
             />
           </TabPanel>
           <TabPanel value="1">
             <EffectsSelector
               v-if="timelineStore.timelineExists"
               v-model="timelineStore.timeline!.effects!"
+              @on-effect-change="onGlobalEffectsChange"
             />
           </TabPanel>
         </TabPanels>
@@ -77,6 +79,7 @@ import SegmentConfig from '@/components/Timeline/SegmentEditing.vue'
 import EffectsSelector from '@/components/Effects/EffectsSelector.vue'
 import RenderManager from './RenderManager.vue'
 import AudioToolbar from './AudioToolbar.vue'
+import { v4 as uuidv4 } from 'uuid'
 
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
@@ -90,4 +93,17 @@ import Panel from 'primevue/panel'
 
 const projectSetupStore = useProjectSetupStore()
 const timelineStore = useTimelineStore()
+
+function onGlobalEffectsChange() {
+  if (!timelineStore.timeline) return
+
+  timelineStore.timeline.segments.forEach((s) => {
+    s.etag = uuidv4()
+  })
+}
+
+function onSegmentEffectChange() {
+  if (timelineStore.selectedSegments.length == 0) return
+  timelineStore.selectedSegments[0]!.etag = uuidv4()
+}
 </script>

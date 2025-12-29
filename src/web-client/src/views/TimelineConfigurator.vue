@@ -131,10 +131,12 @@ function splitSelectedSegment() {
             startTime: x.startTime,
           }) as SegmentVideoModel,
       ),
+      etag: uuidv4()
     }
 
     segment.endTime = middleTime
     segment.duration = halfDuration
+    segment.etag = uuidv4()
 
     timelineStore.insertSegmentIntoTimeline(newSegment, newSegment.index)
 
@@ -167,6 +169,7 @@ function mergeSelectedSegments() {
     splitScreen: sortedSegments[0]!.splitScreen,
     effects: effects,
     videos: videos,
+    etag: uuidv4()
   }
 
   timelineStore.timeline!.segments.splice(

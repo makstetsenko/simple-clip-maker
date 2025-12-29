@@ -80,11 +80,10 @@ async def render_project(project_name: str, debug: bool = False):
 
     clip_builder.set_debug(debug)
 
-    project_setup.clear_runtime_dirs()
     clip_path = await clip_builder.build_clip(timeline_config)
 
     output_clip_path = project.save_clip_with_audio(clip_path=clip_path)
-    
+
     return output_clip_path
 
 
@@ -98,10 +97,8 @@ async def render_project(project_name: str, segment_id: str, debug: bool = False
 
     clip_builder.set_debug(debug)
 
-    project_setup.clear_runtime_dirs()
 
     single_segment_timeline_config = timeline_config.copy_to_single_segment_timeline(segment_id)
-    print(single_segment_timeline_config.to_dict())
 
     clip_path = await clip_builder.build_clip(single_segment_timeline_config)
 
