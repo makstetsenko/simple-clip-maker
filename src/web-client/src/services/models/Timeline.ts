@@ -23,7 +23,10 @@ export type TimelineSegment = {
   is_split_screen: boolean
   effects: Effect[] | null
   videos: SegmentVideo[]
-  etag: string
+  etag: string,
+  start_frame: number,
+  end_frame: number,
+  duration_frame: number,
 }
 
 export type SegmentVideo = {

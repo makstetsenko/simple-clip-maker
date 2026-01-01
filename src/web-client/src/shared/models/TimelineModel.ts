@@ -30,6 +30,9 @@ export interface TimelineSegmentModel {
   effects: EffectModel[] | null | undefined
   videos: SegmentVideoModel[]
   etag: string
+  startFrame: number
+  endFrame: number
+  durationFrame: number
 }
 
 export interface EffectModel {

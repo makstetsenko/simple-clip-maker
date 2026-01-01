@@ -70,7 +70,6 @@ class VideoClipBuilder:
             debug_width += 1
 
         self.resolution = VideoResolution(size=(debug_width, debug_height))
-        self.fps = 12
 
     async def build_segment_clips(self, config: TimelineConfig):
 
@@ -105,7 +104,7 @@ class VideoClipBuilder:
 
         merged_clip = self.load_clip(video.path)
 
-        subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration)
+        subclip = self.get_subclip(merged_clip, video.start_time, segment_config.duration_frame, self.fps)
 
         segment_clip = self.apply_effects(subclip, global_effects + segment_config.effects)
         segment_clip = self.add_debug_info_if_requested(segment_clip, segment_config)
@@ -128,7 +127,7 @@ class VideoClipBuilder:
         if len(segment_config.videos) == 1:
             video = segment_config.videos[0]
             clip = self.load_clip(video.path)
-            subclipped = self.get_subclip(clip, video.start_time, segment_config.duration)
+            subclipped = self.get_subclip(clip, video.start_time, segment_config.duration_frame, self.fps)
 
             position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
             clip_positions = get_positions_from_layout(position_layout)
@@ -174,8 +173,8 @@ class VideoClipBuilder:
             clip_1 = self.load_clip(video_1.path)
             clip_2 = self.load_clip(video_2.path)
 
-            subclipped_1: VideoClip = self.get_subclip(clip_1, video_1.start_time, segment_config.duration)
-            subclipped_2: VideoClip = self.get_subclip(clip_2, video_2.start_time, segment_config.duration)
+            subclipped_1: VideoClip = self.get_subclip(clip_1, video_1.start_time, segment_config.duration_frame, self.fps)
+            subclipped_2: VideoClip = self.get_subclip(clip_2, video_2.start_time, segment_config.duration_frame, self.fps)
 
             position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
             clip_positions = get_positions_from_layout(position_layout)
@@ -227,7 +226,7 @@ class VideoClipBuilder:
 
         for i, v in enumerate(segment_config.videos):
             c = self.load_clip(v.path)
-            s = self.get_subclip(c, v.start_time, segment_config.duration)
+            s = self.get_subclip(c, v.start_time, segment_config.duration_frame, self.fps)
             clips.append(c)
             subclips.append(s)
             split_screen_criteria.append(SplitScreenCriteria(clip=s, position=clip_positions[i], scale_factor=1))
@@ -250,12 +249,13 @@ class VideoClipBuilder:
         await asyncio.sleep(0)
         return (segment_config.index, path)
 
-    def get_clip_padding(self, duration: float):
-        requires_frame_drift = duration <= 0.55
-        return (1.0 / self.fps) if requires_frame_drift else 0
+    # def get_clip_padding(self, duration: float):
+    #     requires_frame_drift = duration <= 0.55
+    #     return (1.0 / self.fps) if requires_frame_drift else 0
 
-    def get_subclip(self, clip: VideoClip, start_time: float, duration: float) -> VideoClip:
-        return clip[start_time : start_time + duration + self.get_clip_padding(duration)].with_duration(duration)
+    def get_subclip(self, clip: VideoClip, start_time: float, duration_frames: int, fps: int) -> VideoClip:
+        duration = float(duration_frames) / float(fps)
+        return clip[start_time : start_time + duration].with_duration(duration)
 
     def apply_effects(self, segment_clip: VideoClip, effects: list[VideoSegmentEffect]):
         for e in effects:
@@ -368,12 +368,14 @@ class VideoClipBuilder:
 
     def add_debug_info_if_requested(self, segment_clip, segment_config: TimelineSegmentConfig) -> VideoClip:
         if self.debug:
+            
+            duration = float(segment_config.duration_frame) / float(self.fps)
 
             text_bg_clip_overlay = (
                 ColorClip(
                     color=(255, 255, 255),
                     size=(60, 60),
-                    duration=segment_config.duration,
+                    duration=duration,
                 )
                 .with_position((0, 0))
                 .with_fps(1)
@@ -381,18 +383,18 @@ class VideoClipBuilder:
 
             text_clip_overlay = (
                 TextClip(
-                    text=str(round(segment_config.start_time, 3)),
+                    text=str(segment_config.start_frame),
                     text_align="left",
                     font_size=14,
                     size=(60, 60),
-                    duration=segment_config.duration,
+                    duration=duration,
                 )
                 .with_position((0, 0))
                 .with_fps(1)
             )
             return (
                 CompositeVideoClip(clips=[segment_clip, text_bg_clip_overlay, text_clip_overlay])
-                .with_duration(segment_config.duration)
+                .with_duration(duration)
                 .with_fps(self.fps)
             )
 

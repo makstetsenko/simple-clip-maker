@@ -15,7 +15,6 @@ import type {
 } from '../models/TimelineModel'
 import { v4 as uuidv4 } from 'uuid'
 
-
 export const mapTimeline = (model: TimelineModel): Timeline => {
   return {
     fps: model.fps,
@@ -52,7 +51,10 @@ export const mapSegment = (model: TimelineSegmentModel): TimelineSegment => {
     is_split_screen: model.splitScreen,
     videos: model.videos.map((v) => mapVideo(v)),
     effects: model.effects?.map((e) => mapEffect(e)),
-    etag: model.etag ?? uuidv4()
+    etag: model.etag ?? uuidv4(),
+    start_frame: model.startFrame,
+    end_frame: model.endFrame,
+    duration_frame: model.durationFrame,
   } as TimelineSegment
 }
 

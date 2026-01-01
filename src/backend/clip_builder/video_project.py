@@ -263,6 +263,10 @@ class VideoProject:
 
         timeline_segments = []
         audio_segments: list[AudioSegment] = []
+        
+        def time_to_frame(t: float, fps: int):
+            return round(t *  fps, ndigits=None)
+        
         for beat_segment in audio_analysis.beat_segments:
             start_time = self.get_video_start_time(video_node, beat_segment)
 
@@ -280,6 +284,12 @@ class VideoProject:
                     reverse_candidate=beat_segment.reverse_candidate,
                 )
             )
+            
+            segment_start_frame = time_to_frame(beat_segment.start_time, self.setup.fps)
+            segment_end_frame = time_to_frame(beat_segment.end_time, self.setup.fps)
+            segment_frame_duration = segment_end_frame - segment_start_frame
+            
+            print(segment_start_frame, segment_frame_duration, segment_end_frame)
 
             if video_node.resolution.matches_aspect_ratio(self.setup.resolution):
 
@@ -294,6 +304,9 @@ class VideoProject:
                         start_time=beat_segment.start_time,
                         end_time=beat_segment.end_time,
                         etag=str(uuid.uuid4()),
+                        start_frame=segment_start_frame,
+                        end_frame=segment_end_frame,
+                        duration_frame=segment_frame_duration,
                     )
                 )
             else:
@@ -314,6 +327,9 @@ class VideoProject:
                         start_time=beat_segment.start_time,
                         end_time=beat_segment.end_time,
                         etag=str(uuid.uuid4()),
+                        start_frame=segment_start_frame,
+                        end_frame=segment_end_frame,
+                        duration_frame=segment_frame_duration,
                     )
                 )
 

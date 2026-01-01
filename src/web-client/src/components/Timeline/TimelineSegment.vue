@@ -15,7 +15,7 @@
     ></div>
     <div class="segment-label">
       <div class="segment-number" v-if="segmentHeight > 20">
-        s{{ model?.index }} {{ model?.startTime.toFixed(3) }} |
+        f{{ model?.startFrame }} |
         {{ secondsToTimeSpanFractionalFormat(model?.startTime) }}
       </div>
     </div>

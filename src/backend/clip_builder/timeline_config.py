@@ -125,6 +125,10 @@ class TimelineSegmentConfig:
     start_time: float
     end_time: float
     etag: str
+    
+    start_frame: int
+    end_frame: int
+    duration_frame: int
 
     def to_dict(self) -> dict:
         return {
@@ -137,6 +141,9 @@ class TimelineSegmentConfig:
             "effects": [e.to_dict() for e in self.effects] if len(self.effects) > 0 else None,
             "videos": [v.to_dict() for v in self.videos],
             "etag": self.etag,
+            "start_frame": self.start_frame,
+            "end_frame": self.end_frame,
+            "duration_frame": self.duration_frame,
         }
 
     @staticmethod
@@ -153,6 +160,9 @@ class TimelineSegmentConfig:
             videos=[VideoItem.from_dict(j) for j in value["videos"]],
             effects=[VideoSegmentEffect.from_dict(j) for j in effects] if effects is not None else [],
             etag=value.get("etag"),
+            start_frame=value.get("start_frame", 0),
+            end_frame=value.get("end_frame", 0),
+            duration_frame=value.get("duration_frame", 0)
         )
 
 

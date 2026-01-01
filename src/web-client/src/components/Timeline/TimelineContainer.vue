@@ -132,16 +132,27 @@ function onSegmentStartTimeDrag(segment: TimelineSegmentModel, mouseY: number) {
   const segmentTopY = mouseY - rect.top
 
   const segmentEndTime = segment.duration + segment.startTime
+  const segmentEndTimeFrame = timeToFrame(segmentEndTime, timelineStore.timeline!.fps)
+
   const newStartTime = (segmentTopY / timelineHeight.value) * timelineStore.timeline!.duration!
+  const newStartTimeFrame = timeToFrame(newStartTime, timelineStore.timeline!.fps)
 
   segment.startTime = newStartTime
+  segment.startFrame = newStartTimeFrame
   segment.duration = segmentEndTime - newStartTime
+  segment.durationFrame = segmentEndTimeFrame - newStartTimeFrame
   segment.etag = uuidv4()
 
   const segmentAbove = timelineStore.timeline!.segments[segment.index - 1]!
   segmentAbove.endTime = segment.startTime
+  segmentAbove.endFrame = segment.startFrame
   segmentAbove.duration = segment.startTime - segmentAbove.startTime
+  segmentAbove.durationFrame = segment.startFrame - segmentAbove.startFrame
   segmentAbove.etag = uuidv4()
+}
+
+function timeToFrame(t: number, fps: number) {
+  return Math.round(t * fps)
 }
 </script>
 

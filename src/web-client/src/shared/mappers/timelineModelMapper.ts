@@ -37,6 +37,9 @@ export const mapSegmentModel = (segment: TimelineSegment): TimelineSegmentModel 
     videos: segment.videos.map((v) => mapVideoModel(v)),
     effects: segment.effects?.map((e) => mapEffectModel(e)) || [],
     etag: segment.etag ?? uuidv4(),
+    startFrame: segment.start_frame,
+    endFrame: segment.end_frame,
+    durationFrame: segment.duration_frame,
   } as TimelineSegmentModel
 }
 
