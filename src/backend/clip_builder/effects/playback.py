@@ -24,6 +24,9 @@ def ramp_speed(
 
     if scale_speed_to_original_duration:
         res = res.with_speed_scaled(final_duration=clip.duration)
+    else:
+        # just cut extra duration 
+        res = res.with_duration(clip.duration)
 
     return res
 
@@ -68,5 +71,8 @@ def ramp_speed_segments(
 
     if scale_speed_to_original_duration:
         res = res.with_speed_scaled(final_duration=clip.duration)
+    else:
+        # just cut extra duration 
+        res = res.with_duration(clip.duration)
 
     return res

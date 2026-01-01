@@ -15,15 +15,24 @@
     <div class="col-12">
       <span v-if="!previewVideoPath"> No preview</span>
 
-      <ClipPreviewPlayer
-        v-if="previewVideoPath"
-        :video-path="previewVideoPath"
-        :width="1100"
-        :height="720"
-        :volume-panel="true"
-        :muted="false"
-        @on-seeked="onSeeked"
-      />
+      <div class="grid">
+        <div v-if="previewVideoPath" class="col-12">
+          <label for="">Playback speed: x{{ videosPlaybackSpeed }}</label>
+          <Slider v-model="videosPlaybackSpeed" class="w-56" :min="0.15" :max="3" :step="0.15" />
+        </div>
+
+        <ClipPreviewPlayer
+          class="col-12"
+          v-if="previewVideoPath"
+          :video-path="previewVideoPath"
+          :width="1100"
+          :height="720"
+          :volume-panel="true"
+          :muted="false"
+          :playback-rate="videosPlaybackSpeed"
+          @on-seeked="onSeeked"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -35,6 +44,7 @@ import { useTimelineStore } from '@/stores/timeline'
 import Button from 'primevue/button'
 import { ref, type Ref } from 'vue'
 import ClipPreviewPlayer from '@/components/Video/ClipPreviewPlayer.vue'
+import Slider from 'primevue/slider'
 
 const renderingInProgress: Ref<boolean> = ref(false)
 
@@ -42,6 +52,7 @@ const projectSetupStore = useProjectSetupStore()
 const timelineStore = useTimelineStore()
 
 const previewVideoPath: Ref<string | null> = ref(null)
+const videosPlaybackSpeed: Ref<number> = ref(1)
 
 async function renderProject() {
   if (!projectSetupStore.hasSelectedProject) return

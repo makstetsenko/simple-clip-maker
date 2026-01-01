@@ -322,7 +322,7 @@ def build_effect_args(effectType: EffectType, effectMethod: EffectMethod, value:
     if effectType == EffectType.PAN:
 
         if effectMethod == EffectMethod.PAN_SIDE_TO_SIDE:
-            return EffectArgs.ZOOM.PAN_SIDE_TO_SIDE.from_dict(value)
+            return EffectArgs.PAN.PAN_SIDE_TO_SIDE.from_dict(value)
 
     if effectType == EffectType.FLASH:
 

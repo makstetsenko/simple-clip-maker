@@ -40,6 +40,32 @@
           size="small"
         />
       </div>
+
+      <!-- NumberArray input -->
+
+      <FloatLabel variant="on" :key="d.key" v-if="d.propType === ArgPropType.NumberArray">
+        <InputText
+          :label="d.label"
+          :model-value="numbersToCsv(model[d.key])"
+          fluid
+          size="small"
+          @value-change="(val) => csvToNumbers(val, d.key)"
+        />
+        <label for="on_label">{{ d.label }}</label>
+      </FloatLabel>
+
+      <!-- Tuple input -->
+
+      <FloatLabel variant="on" :key="d.key" v-if="d.propType === ArgPropType.Tuple">
+        <InputText
+          :label="d.label"
+          :model-value="numbersToCsv(model[d.key])"
+          fluid
+          size="small"
+          @value-change="(val) => csvToNumbers(val, d.key)"
+        />
+        <label for="on_label">{{ d.label }}</label>
+      </FloatLabel>
     </div>
   </div>
 </template>
@@ -75,5 +101,18 @@ function setRgbColorObj(e: ColorPickerChangeEvent, item: any) {
   item[0] = e.value.r
   item[1] = e.value.g
   item[2] = e.value.b
+}
+
+function numbersToCsv(numbers: number[]) {
+  return numbers.join(',')
+}
+
+function csvToNumbers(csv: string | null | undefined, modelKey: string) {
+  if (!csv) {
+    model.value[modelKey] = []
+    return
+  }
+
+  model.value[modelKey] = csv.split(',').map((x) => Number(x.trim()))
 }
 </script>

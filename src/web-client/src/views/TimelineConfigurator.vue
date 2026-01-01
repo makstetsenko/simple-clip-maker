@@ -7,13 +7,13 @@
       }}</span>
     </template>
     <template #content>
-      <Toolbar v-if="timelineStore.selectedSegments.length > 0">
+      <Toolbar>
         <template #start>
-          <Button variant="outlined" @click="splitSelectedSegment"> Split </Button>
+          <Button variant="outlined" @click="splitSelectedSegment" :disabled="timelineStore.selectedSegments.length < 1"> Split </Button>
           <Button
             variant="outlined"
             @click="mergeSelectedSegments"
-            v-if="timelineStore.selectedSegments.length > 1"
+            :disabled="timelineStore.selectedSegments.length < 2"
           >
             Merge
           </Button>
@@ -106,14 +106,18 @@ async function onGenerateTimelineClick() {
 function splitSelectedSegment() {
   for (const segment of timelineStore.selectedSegments) {
     const middleTime = segment.startTime + segment.duration / 2
+    const middleFrame = timeToFrame(middleTime)
     const halfDuration = segment.duration / 2
 
     const newSegment: TimelineSegmentModel = {
       id: uuidv4(),
       index: segment.index + 1,
       startTime: middleTime,
+      startFrame: middleFrame,
       duration: halfDuration,
+      durationFrame: segment.endFrame - middleFrame,
       endTime: segment.endTime,
+      endFrame: segment.endFrame,
       splitScreen: segment.splitScreen,
       effects: segment.effects
         ? segment.effects.map((x) => ({
@@ -134,8 +138,10 @@ function splitSelectedSegment() {
       etag: uuidv4()
     }
 
-    segment.endTime = middleTime
+    segment.endTime = newSegment.startTime
+    segment.endFrame = newSegment.startFrame
     segment.duration = halfDuration
+    segment.durationFrame = newSegment.startFrame - middleFrame
     segment.etag = uuidv4()
 
     timelineStore.insertSegmentIntoTimeline(newSegment, newSegment.index)
@@ -148,7 +154,10 @@ function splitSelectedSegment() {
 function mergeSelectedSegments() {
   const sortedSegments = timelineStore.selectedSegments.sort((a, b) => a.index - b.index)
   const startTime = sortedSegments[0]!.startTime
+  const startFrame = timeToFrame(startTime)
   const endTime = sortedSegments[sortedSegments.length - 1]!.endTime
+  const endFrame = timeToFrame(endTime)
+  const durationFrames = endFrame - startFrame
 
   const videos = sortedSegments[0]?.videos || []
 
@@ -164,8 +173,11 @@ function mergeSelectedSegments() {
     id: uuidv4(),
     index: sortedSegments[0]!.index,
     startTime: startTime,
+    startFrame: startFrame,
     duration: endTime - startTime,
+    durationFrame: durationFrames,
     endTime: endTime,
+    endFrame: endFrame,
     splitScreen: sortedSegments[0]!.splitScreen,
     effects: effects,
     videos: videos,
@@ -179,5 +191,9 @@ function mergeSelectedSegments() {
   )
   timelineStore.reindexSegmentsInTimeline()
   timelineStore.clearSelectedSegments()
+}
+
+function timeToFrame(t: number) {
+  return Math.round(t * timelineStore.timeline!.fps)
 }
 </script>

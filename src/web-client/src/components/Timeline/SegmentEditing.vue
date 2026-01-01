@@ -145,10 +145,13 @@ async function onBuildPreview() {
   await upsertTimeline()
   previewVideoPath.value = null
   previewLoading.value = true
-  const url = `/api/projects/${projectSetupStore.getProjectName}/segment/${model.value!.id}/render/preview?debug=${projectSetupStore.debugMode}`
-  const resp = await apiClient.post(url)
-  previewVideoPath.value = resp.data
-  previewLoading.value = false
+  try {
+    const url = `/api/projects/${projectSetupStore.getProjectName}/segment/${model.value!.id}/render/preview?debug=${projectSetupStore.debugMode}`
+    const resp = await apiClient.post(url)
+    previewVideoPath.value = resp.data
+  } finally {
+    previewLoading.value = false
+  }
 }
 
 async function upsertTimeline() {
