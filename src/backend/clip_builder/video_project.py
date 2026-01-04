@@ -5,7 +5,7 @@ import logging
 import os
 import random
 import shutil
-from typing import Self
+from typing import Callable, Self
 import uuid
 import subprocess
 import pathlib
@@ -20,6 +20,7 @@ from .data_analysis.audio_analyzer import (
     AudioAnalyzeResult,
 )
 from .data_analysis.video_analyzer import (
+    VideoFileDetails,
     analyze_on_static_scenes,
     video_details,
     SceneInfo,
@@ -220,31 +221,12 @@ class VideoProject:
 
         return AudioAnalyzeResult.from_json(cached_value)
 
-    def get_video_analysis(self) -> list[VideoNode]:
-        res: list[VideoNode] = []
+    def get_video_analysis(self) -> list[VideoFileDetails]:
+        res: list[VideoFileDetails] = []
 
         for i, p in enumerate(self.setup.videos_path_list):
-            logger.info(f"Analyzing for video {self.get_file_name(p)}")
-
-            cache_key = self.get_cache_key_from_path(p)
-            cached_value = self.json_cache.get(cache_key)
-
-            if cached_value is None:
-                scenes = analyze_on_static_scenes(p, time_step=0.3, scene_duration_threshold=3)
-                details = video_details(p)
-
-                video_node = VideoNode(
-                    path=p,
-                    fps=details.fps,
-                    resolution=VideoResolution(details.resolution),
-                    scenes=[s for s in scenes if s.is_static == False],
-                )
-
-                self.json_cache.set(cache_key, video_node.to_json())
-
-                res.append(video_node)
-            else:
-                res.append(VideoNode.from_json(cached_value))
+            logger.info(f"Analyzing video {self.get_file_name(p)}")
+            res.append(video_details(p))
 
         for i in range(0, len(res) - 1):
             res[i].next = res[i + 1]
@@ -257,9 +239,9 @@ class VideoProject:
         audio_analysis = self.get_audio_analysis()
         video_analysis = self.get_video_analysis()
 
-        self.store_analysis_to_temp(audio_analysis, video_analysis)
+        self.store_analysis_to_temp(audio_analysis)
 
-        video_node = video_analysis[0]
+        video_details = video_analysis[0]
 
         timeline_segments = []
         audio_segments: list[AudioSegment] = []
@@ -268,7 +250,7 @@ class VideoProject:
             return round(t *  fps, ndigits=None)
         
         for beat_segment in audio_analysis.beat_segments:
-            start_time = self.get_video_start_time(video_node, beat_segment)
+            start_time = self.get_video_start_time(video_details, beat_segment)
 
             audio_segments.append(
                 AudioSegment(
@@ -288,17 +270,30 @@ class VideoProject:
             segment_start_frame = time_to_frame(beat_segment.start_time, self.setup.fps)
             segment_end_frame = time_to_frame(beat_segment.end_time, self.setup.fps)
             segment_frame_duration = segment_end_frame - segment_start_frame
-            
-            print(segment_start_frame, segment_frame_duration, segment_end_frame)
 
-            if video_node.resolution.matches_aspect_ratio(self.setup.resolution):
+            
+            video_resolution = VideoResolution(video_details.resolution)
+            
+        
+            def find_next_video(predicate: Callable[[VideoFileDetails], bool]) -> VideoFileDetails:
+                current: VideoFileDetails = video_details.next
+                path = video_details.path
+
+                while current.path != path:
+                    if predicate(current):
+                        return current
+                    current = current.next
+
+                return video_details
+
+            if video_resolution.matches_aspect_ratio(self.setup.resolution):
 
                 timeline_segments.append(
                     TimelineSegmentConfig(
                         id=str(uuid.uuid4()),
                         index=beat_segment.index,
                         is_split_screen=False,
-                        videos=[VideoItem(id=str(uuid.uuid4()), path=video_node.path, start_time=start_time)],
+                        videos=[VideoItem(id=str(uuid.uuid4()), path=video_details.path, start_time=start_time)],
                         effects=[],
                         duration=beat_segment.duration,
                         start_time=beat_segment.start_time,
@@ -310,8 +305,8 @@ class VideoProject:
                     )
                 )
             else:
-                video_node_2 = video_node.find_next(lambda v: v.resolution.matches_aspect_ratio(video_node.resolution))
-                start_time_2 = self.get_video_start_time(video_node_2, beat_segment)
+                video_details_2 = find_next_video(lambda v: VideoResolution(v.resolution).matches_aspect_ratio(video_resolution))
+                start_time_2 = self.get_video_start_time(video_details_2, beat_segment)
 
                 timeline_segments.append(
                     TimelineSegmentConfig(
@@ -319,8 +314,8 @@ class VideoProject:
                         index=beat_segment.index,
                         is_split_screen=True,
                         videos=[
-                            VideoItem(id=str(uuid.uuid4()), path=video_node.path, start_time=start_time),
-                            VideoItem(id=str(uuid.uuid4()), path=video_node_2.path, start_time=start_time_2),
+                            VideoItem(id=str(uuid.uuid4()), path=video_details.path, start_time=start_time),
+                            VideoItem(id=str(uuid.uuid4()), path=video_details_2.path, start_time=start_time_2),
                         ],
                         effects=[],
                         duration=beat_segment.duration,
@@ -333,7 +328,7 @@ class VideoProject:
                     )
                 )
 
-            video_node = video_node.next
+            video_details = video_details.next
 
         return TimelineConfig(
             size=self.setup.resolution.size,
@@ -364,22 +359,15 @@ class VideoProject:
         )
 
     @staticmethod
-    def get_video_start_time(video_node: VideoNode, beat_segment: BeatSegment):
-        if len(video_node.scenes) > 0:
-            scene: SceneInfo = random.choice(video_node.scenes)
-            start_time = random.random() * (scene.end_time - beat_segment.duration - 0.1)
-            return start_time
-        return 0
+    def get_video_start_time(video: VideoFileDetails, beat_segment: BeatSegment):
+        return random.random() * (video.duration - beat_segment.duration - 0.1)
+
 
     @staticmethod
     def get_file_name(path: str):
         return path.split("/")[-1]
 
-    def store_analysis_to_temp(self, audio_analysis, video_analysis):
-        for n in video_analysis:
-            with open(f"{self.setup.analysis_dir_path}/video_{n.name}.json", "w") as f:
-                f.write(json.dumps(n.to_json(), indent=4, sort_keys=False))
-
+    def store_analysis_to_temp(self, audio_analysis):
         with open(f"{self.setup.analysis_dir_path}/audio_{self.get_file_name(self.setup.audio_path)}.json", "w") as f:
             f.write(json.dumps(audio_analysis.to_json(), indent=4, sort_keys=False))
 

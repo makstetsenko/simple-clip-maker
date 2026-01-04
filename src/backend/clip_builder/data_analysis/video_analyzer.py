@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from dataclasses import dataclass
-from typing import List, Literal
+from typing import List, Literal, Self
 from skimage.metrics import structural_similarity as ssim
 
 
@@ -486,9 +486,11 @@ def analyze_on_static_scenes(
 
 @dataclass
 class VideoFileDetails:
+    path: str
     duration: float  # seconds
     resolution: tuple[int, int]
     fps: int
+    next: Self | None = None
 
 
 def video_details(path):
@@ -503,4 +505,4 @@ def video_details(path):
 
     cap.release()
 
-    return VideoFileDetails(duration=duration, resolution=(width, height), fps=fps)
+    return VideoFileDetails(path=path, duration=duration, resolution=(width, height), fps=fps, next=None)
