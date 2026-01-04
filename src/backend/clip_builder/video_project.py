@@ -245,10 +245,10 @@ class VideoProject:
 
         timeline_segments = []
         audio_segments: list[AudioSegment] = []
-        
+
         def time_to_frame(t: float, fps: int):
-            return round(t *  fps, ndigits=None)
-        
+            return round(t * fps, ndigits=None)
+
         for beat_segment in audio_analysis.beat_segments:
             start_time = self.get_video_start_time(video_details, beat_segment)
 
@@ -266,15 +266,13 @@ class VideoProject:
                     reverse_candidate=beat_segment.reverse_candidate,
                 )
             )
-            
+
             segment_start_frame = time_to_frame(beat_segment.start_time, self.setup.fps)
             segment_end_frame = time_to_frame(beat_segment.end_time, self.setup.fps)
             segment_frame_duration = segment_end_frame - segment_start_frame
 
-            
             video_resolution = VideoResolution(video_details.resolution)
-            
-        
+
             def find_next_video(predicate: Callable[[VideoFileDetails], bool]) -> VideoFileDetails:
                 current: VideoFileDetails = video_details.next
                 path = video_details.path
@@ -305,7 +303,9 @@ class VideoProject:
                     )
                 )
             else:
-                video_details_2 = find_next_video(lambda v: VideoResolution(v.resolution).matches_aspect_ratio(video_resolution))
+                video_details_2 = find_next_video(
+                    lambda v: VideoResolution(v.resolution).matches_aspect_ratio(video_resolution)
+                )
                 start_time_2 = self.get_video_start_time(video_details_2, beat_segment)
 
                 timeline_segments.append(
@@ -361,7 +361,6 @@ class VideoProject:
     @staticmethod
     def get_video_start_time(video: VideoFileDetails, beat_segment: BeatSegment):
         return random.random() * (video.duration - beat_segment.duration - 0.1)
-
 
     @staticmethod
     def get_file_name(path: str):

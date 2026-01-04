@@ -173,8 +173,12 @@ class VideoClipBuilder:
             clip_1 = self.load_clip(video_1.path)
             clip_2 = self.load_clip(video_2.path)
 
-            subclipped_1: VideoClip = self.get_subclip(clip_1, video_1.start_time, segment_config.duration_frame, self.fps)
-            subclipped_2: VideoClip = self.get_subclip(clip_2, video_2.start_time, segment_config.duration_frame, self.fps)
+            subclipped_1: VideoClip = self.get_subclip(
+                clip_1, video_1.start_time, segment_config.duration_frame, self.fps
+            )
+            subclipped_2: VideoClip = self.get_subclip(
+                clip_2, video_2.start_time, segment_config.duration_frame, self.fps
+            )
 
             position_layout = (1, 3) if self.resolution.is_vertical else (3, 1)
             clip_positions = get_positions_from_layout(position_layout)
@@ -368,7 +372,7 @@ class VideoClipBuilder:
 
     def add_debug_info_if_requested(self, segment_clip, segment_config: TimelineSegmentConfig) -> VideoClip:
         if self.debug:
-            
+
             duration = float(segment_config.duration_frame) / float(self.fps)
 
             text_bg_clip_overlay = (

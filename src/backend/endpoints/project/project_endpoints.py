@@ -97,7 +97,6 @@ async def render_project(project_name: str, segment_id: str, debug: bool = False
 
     clip_builder.set_debug(debug)
 
-
     single_segment_timeline_config = timeline_config.copy_to_single_segment_timeline(segment_id)
 
     clip_path = await clip_builder.build_clip(single_segment_timeline_config)

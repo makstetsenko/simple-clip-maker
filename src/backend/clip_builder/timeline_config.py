@@ -125,7 +125,7 @@ class TimelineSegmentConfig:
     start_time: float
     end_time: float
     etag: str
-    
+
     start_frame: int
     end_frame: int
     duration_frame: int
@@ -162,7 +162,7 @@ class TimelineSegmentConfig:
             etag=value.get("etag"),
             start_frame=value.get("start_frame", 0),
             end_frame=value.get("end_frame", 0),
-            duration_frame=value.get("duration_frame", 0)
+            duration_frame=value.get("duration_frame", 0),
         )
 
 
