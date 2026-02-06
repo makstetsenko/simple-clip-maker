@@ -8,11 +8,7 @@
 
     <SplitterPanel :size="65">
       <Splitter layout="vertical">
-        <SplitterPanel :size="5">
-          <AudioToolbar />
-        </SplitterPanel>
-
-        <SplitterPanel :size="95">
+        <SplitterPanel :size="100">
           <!-- [Video / Segment editing / Media] placeholder -->
 
           <Tabs value="0">
@@ -78,7 +74,6 @@ import MediaManager from './MediaManager.vue'
 import SegmentConfig from '@/components/Timeline/SegmentEditing.vue'
 import EffectsSelector from '@/components/Effects/EffectsSelector.vue'
 import RenderManager from './RenderManager.vue'
-import AudioToolbar from './AudioToolbar.vue'
 import { v4 as uuidv4 } from 'uuid'
 
 import Splitter from 'primevue/splitter'

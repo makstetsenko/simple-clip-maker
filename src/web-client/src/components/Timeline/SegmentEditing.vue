@@ -14,6 +14,7 @@
           onLabel="Split screen"
           offLabel="Single frame"
           size="small"
+          @value-change="onSplitScreenValueChanged"
         />
 
         <Button @click="onAddVideo" size="small" severity="success">Add video</Button>
@@ -258,6 +259,11 @@ function onSegmentStartTimeChanged(video: SegmentVideoModel, time: number) {
   if (!model.value) return
 
   video.startTime = time
+  model.value.etag = uuidv4()
+}
+
+function onSplitScreenValueChanged() {
+  if (!model.value) return
   model.value.etag = uuidv4()
 }
 </script>

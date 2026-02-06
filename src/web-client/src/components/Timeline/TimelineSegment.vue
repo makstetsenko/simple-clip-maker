@@ -17,6 +17,15 @@
       <div class="segment-number" v-if="segmentHeight > 20">
         f{{ model?.startFrame }} |
         {{ secondsToTimeSpanFractionalFormat(model?.startTime) }}
+        <Button
+          v-if="model?.index !== (timelineStore.timeline?.segments.length ?? 0) - 1"
+          icon="pi pi-angle-double-down"
+          @click="() => onCopySegmentDown(model)"
+          size="small"
+          variant="text"
+          severity="contrast"
+          tooltip="Copy segment content to the next segment"
+        />
       </div>
     </div>
   </div>
@@ -24,14 +33,21 @@
 
 <script setup lang="ts">
 import { secondsToTimeSpanFractionalFormat } from '@/services/time'
-import type { TimelineSegmentModel } from '@/shared/models/TimelineModel'
+import type {
+  EffectModel,
+  SegmentVideoModel,
+  TimelineSegmentModel,
+} from '@/shared/models/TimelineModel'
+import { useTimelineStore } from '@/stores/timeline'
 import { computed } from 'vue'
+import Button from 'primevue/button'
 
 const props = defineProps({
   timelineHeight: Number,
   timelineDuration: Number,
   selected: Boolean,
 })
+const timelineStore = useTimelineStore()
 const model = defineModel<TimelineSegmentModel>()
 const emits = defineEmits(['onSegmentClick', 'onSegmentStartTimeDrag'])
 
@@ -60,6 +76,35 @@ function onDragLineMouseUp() {
 function onDragLineMouseMove(e: MouseEvent) {
   if (!segmentDragging) return
   emits('onSegmentStartTimeDrag', model.value, e.clientY)
+}
+
+const onCopySegmentDown = (segment: TimelineSegmentModel | undefined) => {
+  if (!segment) return
+  if (!timelineStore.timeline) return
+
+  if (segment.index === timelineStore.timeline.segments.length - 1) return
+
+  timelineStore.timeline.segments[segment.index + 1]!.splitScreen = segment.splitScreen
+
+  timelineStore.timeline.segments[segment.index + 1]!.etag = crypto.randomUUID()
+
+  timelineStore.timeline.segments[segment.index + 1]!.videos = segment.videos.map(
+    (v) =>
+      ({
+        ...v,
+        id: crypto.randomUUID(),
+      }) as SegmentVideoModel,
+  )
+
+  if (!segment.effects) return
+
+  timelineStore.timeline.segments[segment.index + 1]!.effects = segment.effects.map(
+    (e) =>
+      ({
+        ...e,
+        id: crypto.randomUUID(),
+      }) as EffectModel,
+  )
 }
 </script>
 
